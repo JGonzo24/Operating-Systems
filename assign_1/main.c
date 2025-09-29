@@ -1,6 +1,80 @@
+// main.c — allocator + libpp sanity harness
+#define _GNU_SOURCE
+#include <stdio.h>
 #include <stdlib.h>
-int main() {
-    void *p = malloc(10);
+#include <string.h>
+#include <unistd.h>
+#include <pp.h>          // from /home/jgonz555/OS/assign_1/given/Asgn1/include
+
+static void banner(const char *msg) {
+    dprintf(2, "\n===== %s =====\n", msg);  // to stderr so it won't mix with pp()
+}
+
+int main(void) {
+    // Show basic process/arch info to catch 32/64-bit mismatches
+    fprintf(stderr, "INFO: pid=%d, sizeof(void*)=%zu (expect 8 for 64-bit, 4 for 32-bit)\n",
+            getpid(), sizeof(void*));
+
+    // Make sure DEBUG_MALLOC is on (okay if you also export in shell)
+    setenv("DEBUG_MALLOC", "1", 1);
+
+    // 1) Prove libpp is linked & stdout is visible
+    banner("libpp check");
+    pp(stdout, "pp alive from main() — hello!\n");
+    fflush(stdout);
+
+    // 2) Simple malloc → write → free
+    banner("malloc/free");
+    void *p = malloc(24);
+    if (!p) { fprintf(stderr, "malloc(24) failed\n"); return 1; }
+    memset(p, 0xAB, 24);
     free(p);
+
+    // 3) realloc(NULL, n) should behave like malloc
+    banner("realloc(NULL, n)");
+    void *r = realloc(NULL, 64);
+    if (!r) { fprintf(stderr, "realloc(NULL,64) failed\n"); return 1; }
+    memset(r, 0xCD, 64);
+
+    // 4) shrink-in-place: realloc down
+    banner("realloc shrink");
+    r = realloc(r, 16);   // should not move; your logger will show
+    if (!r) { fprintf(stderr, "realloc(...,16) failed\n"); return 1; }
+
+    // 5) grow: may expand-in-place or move; either way, log shows it
+    banner("realloc grow");
+    void *oldr = r;
+    r = realloc(r, 2000);
+    if (!r) { fprintf(stderr, "realloc(...,2000) failed\n"); return 1; }
+    if (r != oldr) fprintf(stderr, "NOTE: realloc moved block (expected sometimes)\n");
+
+    free(r);
+
+    // 6) calloc (tests zeroing and overflow path)
+    banner("calloc");
+    void *c = calloc(3, 10);  // 30 bytes
+    if (!c) { fprintf(stderr, "calloc(3,10) failed\n"); return 1; }
+    // sanity check: data should be zero
+    for (size_t i = 0; i < 30; i++) {
+        if (((unsigned char*)c)[i] != 0) {
+            fprintf(stderr, "ERROR: calloc result not zeroed at i=%zu\n", i);
+            break;
+        }
+    }
+    free(c);
+
+    // 7) free(NULL) must be a no-op (but you log it)
+    banner("free(NULL)");
+    free(NULL);
+
+    // 8) zero-size policy (your code returns NULL — verify)
+    banner("zero-size policy");
+    void *z1 = malloc(0);
+    void *z2 = calloc(0, 16);
+    void *z3 = calloc(16, 0);
+    fprintf(stderr, "malloc(0) -> %p, calloc(0,16) -> %p, calloc(16,0) -> %p\n", z1, z2, z3);
+
+    // Done
+    banner("done");
     return 0;
 }

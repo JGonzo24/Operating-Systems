@@ -1,30 +1,29 @@
 CC       := gcc
 AR       := ar
-CFLAGS   := -Wall -g -fPIC
+CFLAGS   := -Wall -Wextra -g -fPIC \
+            -fno-builtin -fno-builtin-malloc -fno-builtin-free \
+            -fno-builtin-realloc -fno-builtin-calloc
 BUILD    := build
 
-.PHONY: all libs intel-all clean
+INC_DIR  := /home/jgonz555/OS/assign_1/given/Asgn1/include
+CFLAGS   += -I$(INC_DIR)
+
+LIB_DIR  := /home/jgonz555/OS/assign_1/given/Asgn1/lib64
+LDFLAGS  += -L$(LIB_DIR) -Wl,-rpath,$(LIB_DIR)
+
+# Only external libs here; DO NOT re-list libmalloc.a in LDLIBS (we pass it explicitly in the link rule)
+LDLIBS   := -lpp
+
+.PHONY: all libs clean run
 all: libs bin/main
 
-# Build all libs (static + shared)
-libs: lib/libmalloc.a lib64/libmalloc.a lib/libmalloc.so lib64/libmalloc.so
-intel-all: lib/libmalloc.so lib64/libmalloc.so
-
 # ----- OBJ ------
-OBJ32  := $(BUILD)/malloc32.o
-OBJ64  := $(BUILD)/malloc64.o
-APP_OBJ:= $(BUILD)/main.o
+OBJ32   := $(BUILD)/malloc32.o
+OBJ64   := $(BUILD)/malloc64.o
+APP_OBJ := $(BUILD)/main.o
 
-# -- Executables --
 bin:
 	mkdir -p bin
-
-# Prefer static archive for the app (and ensure bin/ exists first)
-bin/main: | bin
-bin/main: $(APP_OBJ) lib64/libmalloc.a
-	$(CC) $(CFLAGS) -m64 -o $@ $(APP_OBJ) lib64/libmalloc.a
-
-# ----- LIB DIRS -----
 lib:
 	mkdir -p lib
 lib64:
@@ -38,7 +37,7 @@ lib/libmalloc.a: lib $(OBJ32)
 lib64/libmalloc.a: lib64 $(OBJ64)
 	$(AR) rcs $@ $(OBJ64)
 
-# ----- SHARED LIBS -----
+# ----- SHARED LIBS (still build them, but we won’t use for run in this profile) -----
 lib/libmalloc.so: lib $(OBJ32)
 	$(CC) $(CFLAGS) -m32 -shared -Wl,--no-undefined -o $@ $(OBJ32)
 lib64/libmalloc.so: lib64 $(OBJ64)
@@ -52,10 +51,13 @@ $(BUILD)/malloc64.o: malloc.c malloc.h | $(BUILD)
 $(BUILD)/main.o: main.c malloc.h | $(BUILD)
 	$(CC) $(CFLAGS) -m64 -c -o $@ $<
 
-# ----- CLEAN -----
+# ----- LINK APP (link your malloc archive; libs AFTER objects) -----
+bin/main: $(APP_OBJ) lib64/libmalloc.a | bin
+	$(CC) -m64 -o $@ $(APP_OBJ) $(LDFLAGS) lib64/libmalloc.a $(LDLIBS)
+
 clean:
 	rm -rf $(BUILD) lib lib64 bin
 
+# No LD_PRELOAD here; your malloc is linked in.
 run: all
-	export DEBUG_MALLOC=1
-	LD_PRELOAD="$(PWD)/lib64/libmalloc.so" ./bin/main
+	DEBUG_MALLOC=1 ./bin/main

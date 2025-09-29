@@ -1,4 +1,5 @@
 #include "malloc.h"
+#include <pp.h>
 // Macros
 #define ALIGNMENT 16
 #define ALIGN(size) (((size) + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1))
@@ -51,7 +52,10 @@ int init_heap(void)
     // Initalize the heap with 64k bytes
     void *base = sbrk(PAGE_SIZE);
     if (base == (void*)-1)       
+    {
+        pp(stdout, "init_heap failure\n");
         return -1;
+    }
 
     heap_start = (char *)base;
     heap_end = heap_start + PAGE_SIZE;
@@ -173,8 +177,10 @@ bool try_expand(header_t *h, size_t asize)
 
 void *realloc(void *ptr, size_t size)
 {
+    pp(stdout, "Hello world!\n");
     if (ptr == NULL)
     {
+        pp(stdout, "PTR null in realloc\n");
         void *np = malloc(size);
         debug_log("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
             ptr, size, np, size);
@@ -183,6 +189,7 @@ void *realloc(void *ptr, size_t size)
 
     if (size == 0)
     {
+        pp(stdout, "realloc free is NULL\n");
         free(ptr); // free() will log on its own
         return NULL;
     }
@@ -207,6 +214,7 @@ void *realloc(void *ptr, size_t size)
     void *newp = malloc(size);
     if (!newp)
     {
+        pp(stdout, "new pointer malloc didn't work\n");
         return NULL;
     }
     size_t copied = h->size < asize ? h->size : asize;
@@ -242,7 +250,8 @@ header_t **find_fit(size_t asize)
         link = &curr->next;
         curr = curr->next;
     }
-    return NULL; 
+    pp(stdout, "Null in find fit!");
+    return NULL;
 }
 
 /**
@@ -334,6 +343,7 @@ void free(void *ptr)
 
     if (!ptr)
     {
+        pp(stdout, "Null in free");
         return;
     }
 
@@ -349,8 +359,10 @@ void free(void *ptr)
  */
 void *malloc(size_t size)
 {
+    pp(stdout, "HELLO WORLD\n");
     if (size == 0)
     {
+        pp(stdout, "MALLOC IS NULL");
         return NULL;
     }
     // Ensure heap initialization
@@ -358,6 +370,7 @@ void *malloc(size_t size)
     {
         if (init_heap() != 0)
         {
+            pp(stdout, "init heap err");
             return NULL;
         }
     }
@@ -392,6 +405,7 @@ void *malloc(size_t size)
 void *calloc(size_t nmemb, size_t size) {
     // 0-size policy (consistent with your malloc)
     if (nmemb == 0 || size == 0) {
+        
         return NULL;
     }
 
@@ -405,6 +419,8 @@ void *calloc(size_t nmemb, size_t size) {
     void *p = malloc(total);
     if (!p) 
     {
+    debug_log("MALLOC: calloc(%zu,%zu) => (ptr=%p, size=%zu)\n",
+          nmemb, size, p, total);
         return NULL;
     }
     // zero exactly the requested bytes
