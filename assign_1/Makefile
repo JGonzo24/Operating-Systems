@@ -4,12 +4,12 @@ CFLAGS   := -Wall -Wextra -g -fPIC \
             -fno-builtin -fno-builtin-malloc -fno-builtin-free \
             -fno-builtin-realloc -fno-builtin-calloc
 BUILD    := build
-
-INC_DIR  := /home/jgonz555/OS/assign_1/given/Asgn1/include
+INC_DIR  := /home/jgonz555/www/Operating-Systems/assign_1/Asgn1/include 
 CFLAGS   += -I$(INC_DIR)
 
-LIB_DIR  := /home/jgonz555/OS/assign_1/given/Asgn1/lib64
 LDFLAGS  += -L$(LIB_DIR) -Wl,-rpath,$(LIB_DIR)
+LIB_DIR  := /home/jgonz555/www/Operating-Systems/assign_1/Asgn1/lib64
+
 
 # Only external libs here; DO NOT re-list libmalloc.a in LDLIBS (we pass it explicitly in the link rule)
 LDLIBS   := -lpp
