@@ -70,7 +70,8 @@ int main(void) {
     for (size_t i = 0; i < 30; i++) {
         if (((unsigned char*)c)[i] != 0) {
             char buf[128];
-            snprintf(buf, sizeof(buf), "ERROR: calloc result not zeroed at i=%zu\n", i);
+            snprintf(buf, sizeof(buf), 
+                    "ERROR: calloc result not zeroed at i=%zu\n", i);
             pp(stdout, buf);
             break;
         }

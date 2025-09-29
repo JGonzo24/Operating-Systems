@@ -14,8 +14,11 @@ LIB_DIR  := /home/jgonz555/www/Operating-Systems/assign_1/Asgn1/lib64
 # Only external libs here; DO NOT re-list libmalloc.a in LDLIBS (we pass it explicitly in the link rule)
 LDLIBS   := -lpp
 
-.PHONY: all libs clean run
+.PHONY: all libs clean run intel-all
 all: libs bin/main
+
+# Intel-specific build target
+intel-all: lib/libmalloc.so lib64/libmalloc.so
 
 # ----- OBJ ------
 OBJ32   := $(BUILD)/malloc32.o
