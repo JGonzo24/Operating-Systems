@@ -72,7 +72,8 @@ static int grow_heap(size_t min_bytes)
     // Insert and let insert_free_block coalesce if adjacent
     insert_free_block(h);
 
-    debug_log("MALLOC: grow_heap(%zu) => +%zu bytes @%p\n", min_bytes, grow, (void*)h);
+    debug_log("MALLOC: grow_heap(%zu) => +%zu bytes @%p\n",
+                 min_bytes, grow, (void*)h);
     return 0;
 }
 

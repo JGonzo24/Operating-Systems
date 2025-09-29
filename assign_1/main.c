@@ -7,7 +7,8 @@
 #include <pp.h>          // from /home/jgonz555/OS/assign_1/given/Asgn1/include
 
 static void banner(const char *msg) {
-    dprintf(2, "\n===== %s =====\n", msg);  // to stderr so it won't mix with pp()
+    // to stderr so it won't mix with pp()
+    dprintf(2, "\n===== %s =====\n", msg);  
 }
 
 int main(void) {
@@ -46,7 +47,7 @@ int main(void) {
     void *oldr = r;
     r = realloc(r, 2000);
     if (!r) { fprintf(stderr, "realloc(...,2000) failed\n"); return 1; }
-    if (r != oldr) fprintf(stderr, "NOTE: realloc moved block (expected sometimes)\n");
+    if (r != oldr) fprintf(stderr, "NOTE: realloc moved block\n");
 
     free(r);
 
@@ -72,8 +73,6 @@ int main(void) {
     void *z1 = malloc(0);
     void *z2 = calloc(0, 16);
     void *z3 = calloc(16, 0);
-    fprintf(stderr, "malloc(0) -> %p, calloc(0,16) -> %p, calloc(16,0) -> %p\n", z1, z2, z3);
-
     // Done
     banner("done");
     return 0;
