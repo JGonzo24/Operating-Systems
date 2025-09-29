@@ -6,29 +6,32 @@
 #define HDR_SIZE ALIGN(sizeof(header_t))
 
 #define PAGE_SIZE (64 * 1024)
-#define PAYLOAD(h)      ((void *)((char *)(h) + HDR_SIZE))
+#define PAYLOAD(h) ((void *)((char *)(h) + HDR_SIZE))
 #define HDR_FROM_PAYLOAD(p) ((header_t *)((char *)(p) - HDR_SIZE))
-
 
 // Global vars
 char *heap_start = NULL;
 char *heap_end = NULL;
 header_t *free_list = NULL;
 
-// LOGGING 
+// LOGGING
 static int debug_malloc_enabled = -1;
-static int log_busy = 0;   // 0 = free, 1 = logging
+static int log_busy = 0; // 0 = free, 1 = logging
 
-static void debug_log(const char *fmt, ...) {
+static void debug_log(const char *fmt, ...)
+{
     // Enable only if DEBUG_MALLOC is set in the environment
-    if (debug_malloc_enabled == -1) {
+    if (debug_malloc_enabled == -1)
+    {
         const char *v = getenv("DEBUG_MALLOC");
         debug_malloc_enabled = (v && *v) ? 1 : 0;
     }
-    if (!debug_malloc_enabled) return;
+    if (!debug_malloc_enabled)
+        return;
 
     // Reentrancy guard: if we’re already in debug_log, bail out
-    if (log_busy) return;
+    if (log_busy)
+        return;
     log_busy = 1;
 
     char buf[256];
@@ -37,8 +40,9 @@ static void debug_log(const char *fmt, ...) {
     int n = vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
 
-    if (n > 0) {
-        size_t len = (n < (int)sizeof(buf)) ? (size_t)n : sizeof(buf)-1;
+    if (n > 0)
+    {
+        size_t len = (n < (int)sizeof(buf)) ? (size_t)n : sizeof(buf) - 1;
         write(STDERR_FILENO, buf, len);
     }
 
@@ -47,20 +51,22 @@ static void debug_log(const char *fmt, ...) {
 
 static int grow_heap(size_t min_bytes)
 {
-    if (min_bytes < (HDR_SIZE + ALIGNMENT)) {
+    if (min_bytes < (HDR_SIZE + ALIGNMENT))
+    {
         min_bytes = HDR_SIZE + ALIGNMENT;
     }
 
     // Round up to PAGE_SIZE
     size_t pages = (min_bytes + PAGE_SIZE - 1) / PAGE_SIZE;
-    size_t grow  = pages * PAGE_SIZE;
+    size_t grow = pages * PAGE_SIZE;
 
     void *old_end = sbrk(grow);
-    if (old_end == (void *)-1) {
+    if (old_end == (void *)-1)
+    {
         debug_log("MALLOC: grow_heap(%zu) failed (sbrk)\n", min_bytes);
         return -1;
     }
-        // New free block starts at previous heap_end
+    // New free block starts at previous heap_end
     header_t *h = (header_t *)((char *)old_end);
     h->is_used = false;
     h->next = NULL;
@@ -73,7 +79,7 @@ static int grow_heap(size_t min_bytes)
     insert_free_block(h);
 
     debug_log("MALLOC: grow_heap(%zu) => +%zu bytes @%p\n",
-                 min_bytes, grow, (void*)h);
+              min_bytes, grow, (void *)h);
     return 0;
 }
 
@@ -82,7 +88,7 @@ int init_heap(void)
 {
     // Initalize the heap with 64k bytes
     void *base = sbrk(PAGE_SIZE);
-    if (base == (void*)-1)       
+    if (base == (void *)-1)
     {
         pp(stdout, "init_heap failure\n");
         return -1;
@@ -123,7 +129,7 @@ void unlink_block(header_t *target)
     header_t **link = &free_list;
     header_t *curr = free_list;
 
-    while(curr)
+    while (curr)
     {
         if (curr == target)
         {
@@ -144,10 +150,10 @@ void shrink_block(header_t *h, size_t asize)
         return;
 
     size_t left = h->size - asize;
-    
+
     if (left < (HDR_SIZE + ALIGNMENT))
     {
-        return; // Too small 
+        return; // Too small
     }
 
     // Create a new free block at the tail
@@ -182,7 +188,7 @@ bool try_expand(header_t *h, size_t asize)
         // We can use the next block's memory
         unlink_block(next);
 
-        if (next_total - needed>= (HDR_SIZE + ALIGNMENT))
+        if (next_total - needed >= (HDR_SIZE + ALIGNMENT))
         {
             // We have room to create a new block
             char *new_ptr = (char *)next + needed;
@@ -193,12 +199,12 @@ bool try_expand(header_t *h, size_t asize)
 
             // Fix the size of block
             h->size = asize;
-            asize = ALIGN(asize);
 
             // Add the new block to the list
             insert_free_block(new);
         }
-        else {
+        else
+        {
             h->size += next_total;
         }
         return true;
@@ -217,7 +223,7 @@ void *realloc(void *ptr, size_t size)
         pp(stdout, "PTR null in realloc\n");
         void *np = malloc(size);
         debug_log("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
-            ptr, size, np, size);
+                  ptr, size, np, size);
         return np;
     }
 
@@ -225,6 +231,13 @@ void *realloc(void *ptr, size_t size)
     {
         pp(stdout, "realloc free is NULL\n");
         free(ptr); // free() will log on its own
+        return NULL;
+    }
+
+    // Basic bounds check for ptr
+    if ((char *)ptr < heap_start + HDR_SIZE || (char *)ptr >= heap_end)
+    {
+        debug_log("MALLOC: realloc(%p,%zu) - invalid pointer\n", ptr, size);
         return NULL;
     }
 
@@ -251,8 +264,9 @@ void *realloc(void *ptr, size_t size)
         pp(stdout, "new pointer malloc didn't work\n");
         return NULL;
     }
-    size_t copied = h->size < asize ? h->size : asize;
-    memcpy(newp, ptr, copied);
+    size_t old_size = h->size;
+    size_t copy_size = (old_size < size) ? old_size : size;
+    memcpy(newp, ptr, copy_size);
 
     // Free old block
     free(ptr);
@@ -260,8 +274,9 @@ void *realloc(void *ptr, size_t size)
 }
 
 // Going to check if adjancent memory can be combined
-static inline bool adjacent_mem(const header_t *a, const header_t *b) {
-    return (char*)a + HDR_SIZE + a->size == (char*)b;
+static inline bool adjacent_mem(const header_t *a, const header_t *b)
+{
+    return (char *)a + HDR_SIZE + a->size == (char *)b;
 }
 
 /**
@@ -284,13 +299,13 @@ header_t **find_fit(size_t asize)
         link = &curr->next;
         curr = curr->next;
     }
-    pp(stdout, "Null in find fit!");
+    debug_log("MALLOC: find_fit(%zu) - no suitable block found\n", asize);
     return NULL;
 }
 
 /**
  * This function checks it it is possible to
- * split the blocks after allocating 
+ * split the blocks after allocating
  */
 static inline bool can_split(const header_t *h, size_t asize)
 {
@@ -298,7 +313,7 @@ static inline bool can_split(const header_t *h, size_t asize)
         return false;
 
     size_t leftover = h->size - asize;
-    // Return true if there is enough space for 16 bytes 
+    // Return true if there is enough space for 16 bytes
     // and HDR
     return leftover >= (HDR_SIZE + ALIGNMENT);
 }
@@ -314,7 +329,7 @@ header_t *split_block(header_t *h, size_t asize)
     }
 
     // Calcuate the new address of the header
-    char *new_addr= (char *)h + HDR_SIZE + asize;
+    char *new_addr = (char *)h + HDR_SIZE + asize;
     header_t *new_header = (header_t *)new_addr;
 
     // Set up the header pointers
@@ -339,7 +354,8 @@ void insert_free_block(header_t *h)
     header_t *curr = free_list;
 
     // Find place to insert the free block
-    while(curr && curr < h) {
+    while (curr && curr < h)
+    {
         prev = curr;
         curr = curr->next;
     }
@@ -350,9 +366,9 @@ void insert_free_block(header_t *h)
         prev->next = h;
     else
         free_list = h;
-    
+
     // See if you can merge adgacent memory
-    if (h->next && adjacent_mem(h,h->next))
+    if (h->next && adjacent_mem(h, h->next))
     {
         header_t *n = h->next;
         h->size += HDR_SIZE + n->size;
@@ -377,7 +393,14 @@ void free(void *ptr)
 
     if (!ptr)
     {
-        pp(stdout, "Null in free");
+        debug_log("MALLOC: free(NULL) - ignoring\n");
+        return;
+    }
+
+    // Basic bounds check
+    if ((char *)ptr < heap_start + HDR_SIZE || (char *)ptr >= heap_end)
+    {
+        debug_log("MALLOC: free(%p) - invalid pointer (out of heap bounds)\n", ptr);
         return;
     }
 
@@ -420,20 +443,19 @@ void *malloc(size_t size)
         }
     }
 
-
-    if (!plink) 
+    if (!plink)
     {
         // Out of memory even after growth
         debug_log("MALLOC: OOM malloc(%zu)\n", size);
         return NULL;
     }
-    // Now have the new header pointer 
+    // Now have the new header pointer
     // be at the same place where theres space
     header_t *h = *plink;
 
     h = split_block(h, asize);
-    
-    // Update the list to be the next free 
+
+    // Update the list to be the next free
     *plink = h->next;
 
     // The current header is now used!
@@ -444,34 +466,35 @@ void *malloc(size_t size)
     void *ret = PAYLOAD(h);
     debug_log("MALLOC: malloc(%zu) => (ptr=%p, size=%zu)\n", size, ret, size);
     return ret;
-
-    
 }
 
-void *calloc(size_t nmemb, size_t size) {
+void *calloc(size_t nmemb, size_t size)
+{
     // 0-size policy (consistent with your malloc)
-    if (nmemb == 0 || size == 0) {
-        
+    if (nmemb == 0 || size == 0)
+    {
+
         return NULL;
     }
 
     // overflow check: nmemb * size
-    if (size > SIZE_MAX / nmemb) {
+    if (size > SIZE_MAX / nmemb)
+    {
         return NULL;
     }
 
     size_t total = nmemb * size;
 
     void *p = malloc(total);
-    if (!p) 
+    if (!p)
     {
-    debug_log("MALLOC: calloc(%zu,%zu) => (ptr=%p, size=%zu)\n",
-          nmemb, size, p, total);
+        debug_log("MALLOC: calloc(%zu,%zu) => (ptr=%p, size=%zu)\n",
+                  nmemb, size, p, total);
         return NULL;
     }
     // zero exactly the requested bytes
     memset(p, 0, total);
     debug_log("MALLOC: calloc(%zu,%zu) => (ptr=%p, size=%zu)\n",
-          nmemb, size, p, total);
+              nmemb, size, p, total);
     return p;
 }
