@@ -31,7 +31,6 @@ extern "C"
     } header_t;
 
     void insert_free_block(header_t *h);
-
     /* Allocate a block of at least `size` bytes, aligned to suitable boundary.
      * Returns NULL on failure or if size == 0 (by your current policy).
      */

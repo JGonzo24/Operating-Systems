@@ -1,0 +1,41 @@
+This is a simple subset of printf(3) that doesn't use malloc() in
+order to simplify the development of your malloc library.  This doesn't
+mean that you won't eventually want to support printf(3), but you won't
+have to immediately.
+
+SYNOPSIS
+
+  #include <plnprint.h>
+
+  void pp(FILE *where, char *fmt,...) {
+
+DESCRIPTION
+
+  Works mostly like printf(3) in a more limited way.  It currently supports
+  the following conversions:
+
+    %s
+    %d
+    %c
+    %x
+    %p
+
+  with field widths and 'l' modifiers.
+
+BUGS
+
+  Doesn't work for most negative long.  Oh, well.
+
+NOTE
+
+  For best results, use this from the Given directory rather than making
+  a copy.  This is definitely (at best?) beta software and may get updated
+  should any errors be found.
+
+  If you find any errors, tell me.
+
+==================================================================
+
+  Shared libraries are found in {lib,lib64}.  If you'd prefer static
+  archives, those are in static/{lib,lib64}.
+  

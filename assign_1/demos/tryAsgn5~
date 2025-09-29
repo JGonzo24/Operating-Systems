@@ -1,0 +1,305 @@
+#!/bin/tcsh -f 
+
+set testonly=0
+
+foreach f ( $argv ) 
+    echo $f
+    switch ( $f ) 
+      case "-l": 
+        setenv LOCALEXPECTED 1
+	breaksw
+      case "-s": 
+        setenv SAVEOUTPUT 1
+	breaksw
+      case "-g": 
+        setenv GRADINGMODE 1
+	breaksw
+    endsw
+end
+
+
+if ( $?GRADINGMODE ) then
+  #echo "tryAsgn5: test only"
+  set testonly=1
+endif
+
+#set verbose
+set debug=0
+set logall=0
+
+if ( $?DEBUG ) then
+  set debug=$DEBUG
+endif
+
+set requireMakefile=0
+set prog=all
+set timeout=10
+set diffargs=""
+set fmt="%6d) %-55s... "
+
+set hostname=`hostname`
+if ( $hostname == "angora.home" ||\
+     $hostname == "lagniappe.csc.calpoly.edu" ||\
+     $hostname == "lagniappe" ) then
+  set classroot=$HOME/CalPoly/Class/cpe453/now/
+  set lib=$classroot/Asgn/Handin/lib/asgn5
+#  set logprog="echo logprog"
+  set logprog=/bin/true
+  set refdir=$HOME/CalPoly/Class/cpe453/now/Asgn/asgn5/Soln_V23/
+  set bindir=$HOME/bin
+  set scriptdir=$HOME/CalPoly/Class/cpe453/now/Asgn/Handin/lib/asgn5/
+  set imagedir=$HOME/CalPoly/Class/cpe453/now/Asgn/Handin/lib/asgn5/Tests/Images
+  set expdir=$HOME/CalPoly/Class/cpe453/now/Asgn/Handin/lib/asgn5/Tests/Expected
+else # CSL
+  set lib=/home/pn-cs453/lib/asgn5/
+  set logprog=/home/pn-cs453/bin/logit.asgn5
+  set refdir=/home/pn-cs453/demos/
+  # add my bindir to the head of the path
+  set path = ( /home/pnico/bin $path )
+  set scriptdir=/home/pn-cs453/demos
+  set imagedir=/home/pn-cs453/Given/Asgn5/Images
+  set expdir=/home/pn-cs453/Given/Asgn5/Expected
+endif
+
+
+# allow for a local expected dir
+if ( $?LOCALEXPECTED ) then
+  set expdir=$cwd/Expected.`hostname -s`
+  if ( ! -d $expdir ) mkdir $expdir
+  echo "*** Caching expected outputs in $expdir."
+  echo "    Remember to clean this up."
+endif
+
+set reference=tr
+set longlines=longlines.pl
+set timelimet=timelimit
+set iolimit=iolimit
+
+set testdir=$lib/Tests
+set cmddir=$testdir/Tests
+set datadir=$testdir/Inputs
+
+set exitstatus = 0
+set whichones=""
+
+set details=t_details.$$
+set reffile=t_reference.$$
+set outfile=t_outfile.$$
+set errfile=t_errfile.$$
+set diffout=t_diffsout.$$
+set sfile=t_script.$$
+
+set itercleanfiles=( $reffile $outfile $errfile $diffout $sfile )
+set cleanupfiles=( $itercleanfiles $details one.log two.log )
+
+# Because of the nature of this program, line and character limits
+# for the tests will be set for each test
+#set limitlines=150
+#set limitchars=8192
+set cdelta=100
+set ldelta=2
+
+set difflimitlines = 20
+set difflimitchars = 4096
+
+
+if ( -f $details ) then
+  rm $details 
+endif
+
+onintr bail
+
+if ( ! $testonly ) then
+  if ( $exitstatus == 0 ) then
+    echo ""
+    echo "------------------------"
+    echo "Looking for source files"
+    echo "------------------------"
+    echo ""
+    set nonomatch
+    if ( *.[ch] != '*.[ch]' ) then
+      set src = ( *.[ch] )
+      echo "Found: $src"
+    else
+      echo "***** No C source files found.  "
+      echo "***** Are you sure you're in the right directory?"
+      echo ""
+      set exitstatus = -1
+    endif
+  endif
+
+  if ( $exitstatus == 0 && $requireMakefile ) then
+    echo ""
+    echo "-----------------------"
+    echo "Looking for a Makefile"
+    echo "----------------------"
+    echo ""
+
+    if ( $exitstatus == 0 ) then
+      if ( -f Makefile ) then
+        echo "Found: Makefile"
+      else if ( -f makefile ) then 
+        echo "Found: makefile"
+      else 
+        echo ""
+        echo "***** No Makefile found."
+        echo ""
+        set exitstatus = -2
+      endif
+    endif
+  endif
+
+  if ( $exitstatus == 0 ) then
+    echo ""
+    echo "--------------------------------"
+    echo "Checking for long lines (no program should have any lines > 80 chars)"
+    echo "(run ~pnico/bin/longlines.pl on your files to check.)"
+    echo "--------------------------------"
+    echo ""
+    if ( ! { $longlines $src } ) then
+       set exitstatus=-3
+    else
+       echo "Line length ok."
+    endif
+    echo ""
+  endif
+
+  if ( $exitstatus == 0 ) then
+    if ( -f Makefile ) then
+      echo "Found: Makefile"
+      set cmd = ( make $prog )
+    else 
+      set cmd = ( gcc -ansi -pedantic -Wall -o $prog *c ) 
+    endif
+
+    echo ""
+    echo "------------------------------------"
+    echo "Building the application:" \"$cmd\"
+    echo "------------------------------------"
+    echo ""
+
+    echo "$cmd" 
+    if ( ! { $cmd } ) then
+      echo ""
+      echo "Unable to compile $prog."
+      set exitstatus = -4
+    endif
+  endif
+endif  # end not testonly section
+
+if ( $exitstatus == 0 ) then
+  echo ""
+  echo "---------------"
+  echo "checking for executables"
+  echo "---------------"
+  echo ""
+
+  if ( ! -x minls ) then
+    echo "program minls not found."
+    if ( ! $testonly ) set exitstatus = -5
+  endif
+  if ( ! -x minget ) then
+    echo "program minget not found."
+    if ( ! $testonly ) set exitstatus = -5
+  endif
+endif
+
+if ( $exitstatus == 0 && -x $scriptdir/tfs.pl ) then
+  if ( $debug ) echo DEBUG: imagedir=$imagedir
+  if ( -d $imagedir ) then
+    setenv IMAGEDIR $imagedir
+    if ( $debug ) echo DEBUG: IMAGEDIR=$IMAGEDIR
+  endif
+  if ( -d $expdir ) then
+    setenv EXPDIR $expdir
+  endif
+  setenv REFDIR $refdir
+    
+  echo "----------------------"
+  echo "Testing verbose behavior"
+  echo "----------------------"
+  echo "minls -v Images/TestImage"
+  set cmd = "./minls -v $imagedir/TestImage"
+  echo $cmd
+  $cmd |& cat -v
+  echo ""
+  echo "minls -v -p 0 Images/HardDisk"
+  set cmd = "./minls -v -p 0 $imagedir/HardDisk"
+  echo $cmd
+  $cmd |& cat -v
+  echo ""
+  echo "minls -v -p 0 -s 0 Images/HardDisk"
+  set cmd = "./minls -v -p 0 -s 0 $imagedir/HardDisk"
+  $cmd |& cat -v
+  echo ""
+
+
+  echo ""
+  echo "------------------------"
+  echo "Running the application "
+  echo "------------------------"
+  echo ""
+
+  #
+  #  Tfs gives spaces between -p, -s and the #, tft, doesn't.
+  # Give the better of the two.
+  #
+
+  set one = 0
+  set two = 0
+
+  rm -f one.log two.log
+
+  if ( ! { ( $scriptdir/tfs.pl >& one.log ) } ) then
+    @ one++
+  endif
+
+  if ( ! { ( $scriptdir/tfs.pl --nospace >& two.log ) } ) then
+    @ two++
+  endif
+
+  set a=`perl -ne 'if ( $_ =~ /(\d+)\/(\d+) passed/ ) { printf "%d",$2-$1; }' one.log`
+  set b=`perl -ne 'if ( $_ =~ /(\d+)\/(\d+) passed/ ) { printf "%d",$2-$1; }' two.log`
+
+  if ( $a <= $b ) then
+    cat -v one.log
+    if ( $one ) @ exitstatus=$a
+  else 
+    cat -v two.log
+    if ( $two ) @ exitstatus=$b
+  endif
+
+endif
+
+endgame:
+  if ( ! $exitstatus ) then
+    echo "Passed all tests."
+  else
+    echo "FAILED."
+      echo ""
+      echo ""
+    if ( -f $details ) then
+      echo ""
+      echo "#############################"
+      echo "# Failure details are below #"
+      echo "#############################"
+      echo ""
+      cat $details
+    endif
+  endif
+
+  $logprog  $exitstatus "$whichones"
+
+  rm -f $cleanupfiles
+  exit $exitstatus;
+
+bail:
+    set exitstatus=-7
+    echo ""
+    echo "Interrupted"
+    echo ""
+    goto endgame
+
+
+
+

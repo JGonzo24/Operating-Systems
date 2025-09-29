@@ -1,0 +1,273 @@
+#!/bin/csh -f 
+
+set class=cpe453
+set classdir=pn-cs453
+set asgn=asgn3
+set maketarget=dine
+
+if ( `hostname` == "angora.home" || `hostname` == "lagniappe" ) then
+  set lib=$HOME/CalPoly/Class/$class/now/Asgn/Handin/lib/$asgn
+  set logprog=/bin/echo
+  set longlines=$HOME/bin/longlines.pl
+else
+  if ( -d $classdir/bin ) then
+    set path=($path $classdir/bin )
+  endif
+  if ( -d ~pnico/bin ) then
+    set path=($path ~pnico/bin )
+  endif
+  set lib=/home/$classdir/lib/$asgn/
+  set logprog=/home/$classdir/bin/logit.$asgn
+  set longlines=/home/$classdir/bin/longlines.pl
+endif
+
+set testdir=$lib/testlib
+set exitstatus = 0
+set which = -1
+onintr bail
+
+
+if ( $?GRADINGMODE ) then
+  echo "(Grading mode.  Skipping build.)"
+else
+  # Only try to build if GRADINGMODE isn't set
+  if ( $exitstatus == 0 ) then
+    echo ""
+    echo "------------------------"
+    echo "Looking for source files"
+    echo "------------------------"
+    echo ""
+
+    set nonomatch
+    set src = ( *.[ch] )
+    if ( "$src" != '*.[ch]' ) then
+
+      echo "Found: $src"
+    else
+      echo "***** No C source files found. " 
+      echo "***** Are you sure you're in the right directory?"
+      echo ""
+      set exitstatus = -1
+    endif
+  endif
+
+  if ( $exitstatus == 0 ) then
+    echo ""
+    echo "-----------------------"
+    echo "Looking for a Makefile"
+    echo "----------------------"
+    echo ""
+
+    if ( $exitstatus == 0 ) then
+      if ( -f Makefile ) then
+        echo "Found: Makefile"
+      else if ( -f makefile ) then 
+        echo "Found: makefile"
+      else 
+        echo ""
+        echo "***** No Makefile found."
+        echo ""
+        set exitstatus = -2
+      endif
+    endif
+  endif
+
+  if ( $exitstatus == 0 ) then
+    echo ""
+    echo "--------------------------------"
+    echo "Checking for long lines (no program should have any lines > 80 chars)"
+    echo "--------------------------------"
+    echo ""
+    if ( ! { $longlines $src } ) then
+       set exitstatus=-3
+    else
+       echo "Line length ok."
+    endif
+    echo ""
+  endif
+
+  if ( $exitstatus == 0 ) then
+    echo ""
+    echo "------------------------------------"
+    echo "Building the application:" \"make $maketarget\"
+    echo "------------------------------------"
+    echo ""
+
+    set cmd = ( make $maketarget )
+    echo "$cmd" 
+    if ( ! { $cmd  } ) then
+      echo ""
+      echo "Build failed."
+      set exitstatus = -4
+    endif
+  endif
+  
+  if ( $exitstatus == 0 ) then
+    echo ""
+    echo "---------------"
+    echo "checking for $maketarget"
+    echo "---------------"
+    echo ""
+
+    if ( ! -f $maketarget ) then
+      echo "$maketarget not found"
+      set exitstatus = -5
+    endif
+  endif
+endif
+
+#===================================================================
+#below this is where most customization should happen
+#===================================================================
+
+# if ( $exitstatus == 0 ) then
+#   #First, convert the given static library into a dynamic one
+#   set srclib=liblwp.a
+#   set dstlib=$srclib:r.so
+
+#   if ( ! -f $srclib ) then
+#     echo ""
+#     echo "Unable to locate $srclib."
+#     echo ""
+#     @ exitstatus++
+#   else
+#     # try and build the shared library
+#     if ( ! -d $tmpdir ) then
+#       mkdir $tmpdir
+#     endif
+
+#     cd $tmpdir
+#     if ( ! { ar x ../$srclib } ) then
+#       echo ""
+#       echo "Unable to extract objects from $srclib."
+#       echo ""
+#       @ exitstatus++
+#     else
+#       if ( { ( file *.o | grep -q 64-bit ) > /dev/null } ) then
+#         echo ""
+#         echo "*** Found 64-bit object(s) in $srclib.  Be sure you are compiling"
+#         echo "    with -m32."
+#         echo ""
+# 	@ exitstatus++
+#       else if ( ! { gcc -m32 -shared -o $dstlib *.o } ) then
+#         echo ""
+#         echo "Unable to build $dstlib."
+#         echo ""
+#         @ exitstatus++
+#       endif
+#     endif
+#   endif
+# endif
+
+# test it.
+
+
+if ( $exitstatus == 0 ) then
+  echo ""
+  echo "--------------------------------------------------------"
+  echo "Test Results:"
+  echo "   These are the results of trying your $maketarget"   
+  echo "a few times and checking to see if the results have"
+  echo "any obvious errors. (e.g. neighbors eating at the same time)"
+  echo ""
+  echo "  Note: There can be errors that aren't caught by this."
+  echo ""
+#===================================================================
+
+  # time out after 5 minutes  ( With a 0-1s dawdle while thinking and eating 
+  # one round for 5 philosophers should take (expected) 5s w/a max of 10.
+  # a 5 min timeout should be safe for cycles of 10 or 20.
+  set timeout=300
+  set maxlines=4096
+  set maxchars=131072
+  set iolimit= ( iolimit $maxlines $maxchars )
+
+  set filter="$lib/checkoutput"
+
+  limit filesize 1M
+  limit coredumpsize 1M
+
+  if ( $?GRADINGMODE ) then
+    set outdir = Output
+  else
+    set outdir = Output.$$
+  endif
+
+  echo ""					
+  echo "--------------------------------" 
+  echo "Testing dine   (timeout=$timeout)"
+  echo "--------------------------------" 
+  echo ""					
+  echo ""					
+
+  @ exitstatus = 0
+
+  set nonomatch
+
+  set timelimit=`which timelimit`
+
+  if ( ! -d $outdir ) mkdir $outdir
+
+  set testsizes = ( "" 1 5 10 15 20 ) 
+#  set testsizes = ( 1 ) 
+  if ( -x dine ) then
+      foreach size ( $testsizes )
+        set outname=$outdir/output.$size
+        if ( -f $outname ) mv $outname $outname.bak
+        set cmd="./dine $size"
+        echo \$ $cmd 
+#        scriptwrap -f $outname -t $timeout $cmd >& /dev/null
+#        grabTTY -f $outname -t $timeout $cmd >& /dev/null
+#ORIG        scriptwrap -f $outname $timelimit $timeout $cmd >& /dev/null
+        ~pn-cs321/lib/asgn2/scriptwrap -f $outname $timelimit $timeout $cmd >& /dev/null
+        set estat=$status
+        if ( -x $filter ) then
+          $filter -v $outname
+        else
+          cat $outname
+        endif
+
+        echo ""                                   
+        if ( $estat != 0 ) then
+          echo "<bad exit value: $estat>"         
+          @ exitstatus++
+        else
+          echo "<exit ok>"                        
+        endif
+        echo ""                                   
+      end
+  else
+      echo "  ----------"                       
+      echo "  dine NOT FOUND"      	      
+      echo "  ----------"                       
+      echo ""                                   
+      @ exitstatus++
+  endif
+
+
+  echo ""                                       
+  if ( $exitstatus == 0 ) then
+      echo "completed all."                        
+  else
+      echo "FAILED."                            
+  endif
+#===================================================================
+endif
+
+goto done
+
+bail:
+  echo "Interrupted."
+  set exitstatus=-7
+
+done:
+
+  if ( ! $?GRADINGMODE ) then
+    rm -rf $outdir
+  endif
+
+if ( -x $logprog ) then
+  $logprog $exitstatus $which
+endif
+
+exit $exitstatus

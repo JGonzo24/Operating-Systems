@@ -14,39 +14,6 @@ char *heap_start = NULL;
 char *heap_end = NULL;
 header_t *free_list = NULL;
 
-#include <stdarg.h>
-#include <unistd.h>   // write
-#include <stdlib.h>   // getenv
-
-// cached on first use: 1=on, 0=off, -1=unknown
-static int dm_state = -1;
-static inline int dm_on(void) {
-    if (dm_state == -1) {
-        dm_state = (getenv("DEBUG_MALLOC") || getenv("DEBUG MALLOC")) ? 1 : 0;
-    }
-    return dm_state;
-}
-
-// recursion guard: snprintf/free(NULL) quirks, etc.
-static __thread int dm_busy = 0;
-
-static inline void dm_log(const char *fmt, ...) {
-    if (!dm_on() || dm_busy) return;
-    dm_busy = 1;
-
-    char buf[256];
-    va_list ap; va_start(ap, fmt);
-    int n = vsnprintf(buf, sizeof buf, fmt, ap);
-    va_end(ap);
-
-    if (n > 0) {
-        if (n > (int)sizeof buf) n = (int)sizeof buf;
-        (void)write(2, buf, (size_t)n);
-        (void)write(2, "\n", 1);
-    }
-    dm_busy = 0;
-}
-
 // Helper Functions
 int init_heap(void)
 {
@@ -71,12 +38,12 @@ int init_heap(void)
 /**
  * REALLOC helper functions
  */
-inline char *block_end(const header_t *h)
+static inline char *block_end(const header_t *h)
 {
     return (char *)h + HDR_SIZE + h->size;
 }
 
-inline header_t *next_block(const header_t *h)
+static inline header_t *next_block(const header_t *h)
 {
     char *n = block_end(h);
     if (n >= heap_end)
@@ -177,18 +144,13 @@ void *realloc(void *ptr, size_t size)
 {
     if (ptr == NULL)
     {
-        dm_busy = 1; // suppress malloc’s own log
         void *np = malloc(size);
-        dm_busy = 0;
-        dm_log("MALLOC: realloc(%p,%d) => (ptr=%p, size=%d)", (void *)0, (int)size,
-               np, np ? (int)ALIGN(size) : 0);
         return np;
     }
 
     if (size == 0)
     {
         free(ptr); // free() will log on its own
-        dm_log("MALLOC: realloc(%p,%d) => (ptr=%p, size=%d)", ptr, 0, (void *)0, 0);
         return NULL;
     }
 
@@ -223,7 +185,7 @@ void *realloc(void *ptr, size_t size)
 }
 
 // Going to check if adjancent memory can be combined
-inline bool adjacent_mem(const header_t *a, const header_t *b) {
+static inline bool adjacent_mem(const header_t *a, const header_t *b) {
     return (char*)a + HDR_SIZE + a->size == (char*)b;
 }
 
@@ -254,7 +216,7 @@ header_t **find_fit(size_t asize)
  * This function checks it it is possible to
  * split the blocks after allocating 
  */
-inline bool can_split(const header_t *h, size_t asize)
+static inline bool can_split(const header_t *h, size_t asize)
 {
     if (h->size < asize)
         return false;
@@ -337,7 +299,6 @@ void free(void *ptr)
 {
     if (!ptr)
     {
-        dm_log("MALLOC: free(%p)", ptr);
         return;
     }
 
@@ -355,7 +316,6 @@ void *malloc(size_t size)
 {
     if (size == 0)
     {
-        dm_log("MALLOC: malloc (%d)=> (ptr %p, size %d)", 0, (void *)0, 0);
         return NULL;
     }
     // Ensure heap initialization
@@ -388,7 +348,6 @@ void *malloc(size_t size)
     h->is_used = true;
 
     void *ret = PAYLOAD(h);
-    dm_log("MALLOC: malloc(%d) => (ptr=%p, size=%d)", (int)size, ret, (int)asize);
     return ret;
 
     
@@ -397,15 +356,11 @@ void *malloc(size_t size)
 void *calloc(size_t nmemb, size_t size) {
     // 0-size policy (consistent with your malloc)
     if (nmemb == 0 || size == 0) {
-        dm_log("MALLOC: calloc(%d,%d) => (ptr=%p, size=%d)", (int)nmemb, (int)size, (void*)0, 0);
-
         return NULL;
     }
 
     // overflow check: nmemb * size
     if (size > SIZE_MAX / nmemb) {
-        dm_log("MALLOC: calloc(%d,%d) => (ptr=%p, size=%d)", (int)nmemb, (int)size, (void*)0, 0);
-
         return NULL;
     }
 
@@ -414,11 +369,9 @@ void *calloc(size_t nmemb, size_t size) {
     void *p = malloc(total);
     if (!p) 
     {
-        dm_log("MALLOC: calloc(%d,%d) => (ptr=%p, size=%d)", (int)nmemb, (int)size, (void*)0, 0);
         return NULL;
     }
     // zero exactly the requested bytes
     memset(p, 0, total);
-    dm_log("MALLOC: calloc(%d,%d) => (ptr=%p, size=%d)", (int)nmemb, (int)size, p, (int)total);
     return p;
 }
