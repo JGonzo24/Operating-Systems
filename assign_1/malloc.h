@@ -3,8 +3,7 @@
  * NOTE: This header declares standard malloc-family symbols so that
  * code including <stdlib.h> will still match types exactly. If you
  * also include the system <malloc.h>, ensure your include paths pick
- * this file first, or rename this header to avoid collisions.
- */
+ * this file first, or rename this header to avoid collisions.  */
 
 #ifndef CUSTOM_MALLOC_H_
 #define CUSTOM_MALLOC_H_
@@ -46,8 +45,6 @@ extern "C"
      * - Expands in place by merging right-adjacent free space when possible.
      * - Otherwise allocates a new block, copies min(old,new) bytes,
      *   frees the old block, and returns the new pointer.
-     * - On allocation failure, returns NULL and the original block remains valid.
-     * - If ptr == NULL, behaves like malloc(size).
      * - If size == 0 and ptr != NULL, behaves like free(ptr) and returns NULL.
      */
     void *realloc(void *ptr, size_t size);
