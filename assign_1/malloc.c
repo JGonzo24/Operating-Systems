@@ -14,12 +14,43 @@ char *heap_start = NULL;
 char *heap_end = NULL;
 header_t *free_list = NULL;
 
+// LOGGING 
+static int debug_malloc_enabled = -1;
+static int log_busy = 0;   // 0 = free, 1 = logging
+
+static void debug_log(const char *fmt, ...) {
+    // Enable only if DEBUG_MALLOC is set in the environment
+    if (debug_malloc_enabled == -1) {
+        const char *v = getenv("DEBUG_MALLOC");
+        debug_malloc_enabled = (v && *v) ? 1 : 0;
+    }
+    if (!debug_malloc_enabled) return;
+
+    // Reentrancy guard: if we’re already in debug_log, bail out
+    if (log_busy) return;
+    log_busy = 1;
+
+    char buf[256];
+    va_list ap;
+    va_start(ap, fmt);
+    int n = vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+
+    if (n > 0) {
+        size_t len = (n < (int)sizeof(buf)) ? (size_t)n : sizeof(buf)-1;
+        write(STDERR_FILENO, buf, len);
+    }
+
+    log_busy = 0;
+}
+
+
 // Helper Functions
 int init_heap(void)
 {
     // Initalize the heap with 64k bytes
     void *base = sbrk(PAGE_SIZE);
-    if (base == (void*)-1)
+    if (base == (void*)-1)       
         return -1;
 
     heap_start = (char *)base;
@@ -145,6 +176,8 @@ void *realloc(void *ptr, size_t size)
     if (ptr == NULL)
     {
         void *np = malloc(size);
+        debug_log("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
+            ptr, size, np, size);
         return np;
     }
 
@@ -297,6 +330,8 @@ void insert_free_block(header_t *h)
  */
 void free(void *ptr)
 {
+    debug_log("MALLOC: free(%p)\n", ptr);
+
     if (!ptr)
     {
         return;
@@ -348,6 +383,7 @@ void *malloc(size_t size)
     h->is_used = true;
 
     void *ret = PAYLOAD(h);
+    debug_log("MALLOC: malloc(%zu) => (ptr=%p, size=%zu)\n", size, ret, size);
     return ret;
 
     
@@ -373,5 +409,7 @@ void *calloc(size_t nmemb, size_t size) {
     }
     // zero exactly the requested bytes
     memset(p, 0, total);
+    debug_log("MALLOC: calloc(%zu,%zu) => (ptr=%p, size=%zu)\n",
+          nmemb, size, p, total);
     return p;
 }

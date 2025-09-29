@@ -24,7 +24,6 @@ bin/main: | bin
 bin/main: $(APP_OBJ) lib64/libmalloc.a
 	$(CC) $(CFLAGS) -m64 -o $@ $(APP_OBJ) lib64/libmalloc.a
 
-
 # ----- LIB DIRS -----
 lib:
 	mkdir -p lib

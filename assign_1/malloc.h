@@ -15,7 +15,12 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include <stdio.h>
+
+#include <unistd.h>   // write
+#include <stdio.h>    // snprintf
+#include <stdlib.h>   // getenv
+#include <string.h>   // strlen
+#include <stdarg.h>   // va_list
 
 
 #ifdef __cplusplus
