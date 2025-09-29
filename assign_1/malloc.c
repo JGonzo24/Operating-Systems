@@ -45,6 +45,36 @@ static void debug_log(const char *fmt, ...) {
     log_busy = 0;
 }
 
+static int grow_heap(size_t min_bytes)
+{
+    if (min_bytes < (HDR_SIZE + ALIGNMENT)) {
+        min_bytes = HDR_SIZE + ALIGNMENT;
+    }
+
+    // Round up to PAGE_SIZE
+    size_t pages = (min_bytes + PAGE_SIZE - 1) / PAGE_SIZE;
+    size_t grow  = pages * PAGE_SIZE;
+
+    void *old_end = sbrk(grow);
+    if (old_end == (void *)-1) {
+        debug_log("MALLOC: grow_heap(%zu) failed (sbrk)\n", min_bytes);
+        return -1;
+    }
+        // New free block starts at previous heap_end
+    header_t *h = (header_t *)((char *)old_end);
+    h->is_used = false;
+    h->next = NULL;
+    h->size = grow - HDR_SIZE;
+
+    // Update heap_end
+    heap_end = (char *)old_end + grow;
+
+    // Insert and let insert_free_block coalesce if adjacent
+    insert_free_block(h);
+
+    debug_log("MALLOC: grow_heap(%zu) => +%zu bytes @%p\n", min_bytes, grow, (void*)h);
+    return 0;
+}
 
 // Helper Functions
 int init_heap(void)
@@ -142,6 +172,8 @@ bool try_expand(header_t *h, size_t asize)
         return false;
 
     size_t needed = asize - h->size;
+    needed = ALIGN(needed);
+
     size_t next_total = HDR_SIZE + next->size;
 
     if (next_total >= needed)
@@ -160,6 +192,7 @@ bool try_expand(header_t *h, size_t asize)
 
             // Fix the size of block
             h->size = asize;
+            asize = ALIGN(asize);
 
             // Add the new block to the list
             insert_free_block(new);
@@ -359,7 +392,6 @@ void free(void *ptr)
  */
 void *malloc(size_t size)
 {
-    pp(stdout, "HELLO WORLD\n");
     if (size == 0)
     {
         pp(stdout, "MALLOC IS NULL");
@@ -379,8 +411,21 @@ void *malloc(size_t size)
     header_t **plink = find_fit(asize);
 
     if (!plink)
-        return NULL;
+    {
+        size_t need = HDR_SIZE + asize;
+        if (grow_heap(need) == 0)
+        {
+            plink = find_fit(asize);
+        }
+    }
 
+
+    if (!plink) 
+    {
+        // Out of memory even after growth
+        debug_log("MALLOC: OOM malloc(%zu)\n", size);
+        return NULL;
+    }
     // Now have the new header pointer 
     // be at the same place where theres space
     header_t *h = *plink;
