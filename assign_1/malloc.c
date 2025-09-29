@@ -1,0 +1,367 @@
+#include "malloc.h"
+
+// Macros
+#define ALIGNMENT 16
+#define ALIGN(size) (((size) + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1))
+#define HDR_SIZE ALIGN(sizeof(header_t))
+
+#define PAGE_SIZE (64 * 1024)
+#define PAYLOAD(h)      ((void *)((char *)(h) + HDR_SIZE))
+#define HDR_FROM_PAYLOAD(p) ((header_t *)((char *)(p) - HDR_SIZE))
+
+
+// Global vars
+char *heap_start = NULL;
+char *heap_end = NULL;
+header_t *free_list = NULL;
+
+
+
+// Helper Functions
+int init_heap(void)
+{
+    // Initalize the heap with 64k bytes
+    void *base = sbrk(PAGE_SIZE);
+    if (base == (void*)-1)
+        return -1;
+
+    heap_start = (char *)base;
+    heap_end = heap_start + PAGE_SIZE;
+    header_t *h = (header_t *)heap_start;
+
+    size_t usable = PAGE_SIZE - HDR_SIZE;
+    h->is_used = false;
+    h->next = NULL;
+    h->size = usable;
+
+    free_list = h;
+    return 0;
+}
+
+/**
+ * REALLOC helper functions
+ */
+inline char *block_end(const header_t *h)
+{
+    return (char *)h + HDR_SIZE + h->size;
+}
+
+inline header_t *next_block(const header_t *h)
+{
+    char *n = block_end(h);
+    if (n >= heap_end)
+        return NULL;
+    return (header_t *)n;
+}
+
+void unlink_block(header_t *target)
+{
+    // Look for the target, remove from the list
+    header_t **link = &free_list;
+    header_t *curr = free_list;
+
+    while(curr)
+    {
+        if (curr == target)
+        {
+            *link = curr->next;
+            return;
+        }
+        link = &curr->next;
+        curr = curr->next;
+    }
+}
+
+/**
+ * REALLOC case 1: Shrink in place
+ */
+void shrink_block(header_t *h, size_t asize)
+{
+    if (h->size <= asize)
+        return;
+
+    size_t left = h->size - asize;
+    
+    if (left < (HDR_SIZE + ALIGNMENT))
+    {
+        return; // Too small 
+    }
+
+    // Create a new free block at the tail
+    header_t *tail = (header_t *)((char *)h + HDR_SIZE + asize);
+    tail->size = left - HDR_SIZE;
+    tail->is_used = false;
+    tail->next = NULL;
+
+    // Shrink current block
+    h->size = asize;
+    insert_free_block(tail);
+}
+/**
+ * REALLOC case 2: Expand in place
+ */
+bool try_expand(header_t *h, size_t asize)
+{
+    if (h->size > asize)
+        return true; // Already big enough
+
+    header_t *next = next_block(h);
+    if (!next || next->is_used)
+        return false;
+
+    size_t remaining = h->size - asize;
+    size_t next_total = HDR_SIZE + next->size;
+
+    if (next_total >= remaining)
+    {
+        // We can use the next block's memory
+        unlink_block(next);
+
+        if (next_total - remaining >= (HDR_SIZE + ALIGNMENT))
+        {
+            // We have room to create a new block
+            char *new_ptr = (char *)next + remaining;
+            header_t *new = (header_t *)new_ptr;
+            new->size = (next_total - remaining) - HDR_SIZE;
+            new->is_used = false;
+            new->next = NULL;
+
+            // Fix the size of block
+            h->size = asize;
+
+            // Add the new block to the list
+            insert_free_block(new);
+        }
+        else {
+            h->size += next_total;
+        }
+        return true;
+    }
+    return false;
+}
+/**
+ * REALLOC
+ */
+
+void* realloc(void *ptr, size_t size)
+{
+    if (ptr == NULL)
+        return malloc(size);
+    
+    if (size == 0)
+    {
+        free(ptr);
+        return NULL;
+    }
+
+    size_t asize = ALIGN(size);
+    header_t *h = HDR_FROM_PAYLOAD(ptr);
+
+    // Case 1: Shrink in place
+    if (asize <= h->size)
+    {
+        shrink_block(h, asize);
+        return PAYLOAD(h);
+    }
+
+    // Case 2: Expand in place
+    if (try_expand(h, asize))
+    {
+        return PAYLOAD(h);
+    }
+
+    // Case 3: Could not expand in place
+    void *newp = malloc(size);
+    if (!newp)
+    {
+        return NULL;
+    }
+    size_t copied = h->size < asize ? h->size : asize;
+    memcpy(newp, ptr, copied);
+
+    // Free old block
+    free(ptr);
+    return newp;
+}
+
+// Going to check if adjancent memory can be combined
+inline bool adjacent_mem(const header_t *a, const header_t *b) {
+    return (char*)a + HDR_SIZE + a->size == (char*)b;
+}
+
+/**
+ * This is going to loop through the list of free blocks
+ * of memory, returning the 'next' link where we can use
+ * that piece of memory
+ */
+header_t **find_fit(size_t asize)
+{
+    header_t **link = &free_list;
+    header_t *curr = free_list;
+
+    while (curr != NULL)
+    {
+        if (!curr->is_used && curr->size >= asize)
+        {
+            return link;
+        }
+        // Update the pointers
+        link = &curr->next;
+        curr = curr->next;
+    }
+    return NULL; 
+}
+
+/**
+ * This function checks it it is possible to
+ * split the blocks after allocating 
+ */
+inline bool can_split(const header_t *h, size_t asize)
+{
+    if (h->size < asize)
+        return false;
+
+    size_t leftover = h->size - asize;
+    // Return true if there is enough space for 16 bytes 
+    // and HDR
+    return leftover >= (HDR_SIZE + ALIGNMENT);
+}
+
+/**
+ * This function splits the chunks of memory if needed
+ */
+header_t *split_block(header_t *h, size_t asize)
+{
+    if (!can_split(h, asize))
+    {
+        return h;
+    }
+
+    // Calcuate the new address of the header
+    char *new_addr= (char *)h + HDR_SIZE + asize;
+    header_t *new_header = (header_t *)new_addr;
+
+    // Set up the header pointers
+    new_header->is_used = false;
+    new_header->next = h->next;
+    new_header->size = h->size - asize - HDR_SIZE;
+
+    // Shrink current block
+    h->size = asize;
+    h->next = new_header;
+
+    return h;
+}
+
+/**
+ * This is going to insert the freed
+ * block back into the free list
+ */
+void insert_free_block(header_t *h)
+{
+    header_t *prev = NULL;
+    header_t *curr = free_list;
+
+    // Find place to insert the free block
+    while(curr && curr < h) {
+        prev = curr;
+        curr = curr->next;
+    }
+
+    // Put between previous and current
+    h->next = curr;
+    if (prev)
+        prev->next = h;
+    else
+        free_list = h;
+    
+    // See if you can merge adgacent memory
+    if (h->next && adjacent_mem(h,h->next))
+    {
+        header_t *n = h->next;
+        h->size = HDR_SIZE + n->size;
+        h->next = n->next;
+    }
+
+    if (prev && adjacent_mem(prev, h))
+    {
+        prev->size = HDR_SIZE + h->size;
+        prev->next = h->next;
+    }
+}
+
+/**
+ * We are now starting free
+ * - Need to insert into the free list
+ * - Update pointers if adjacent blocks are free
+ */
+void free(void *ptr)
+{
+    if (!ptr)
+        return;
+
+    header_t *h = HDR_FROM_PAYLOAD(ptr);
+    h->is_used = false;
+    insert_free_block(h);
+}
+
+/**
+ * MALLOC()
+ * This is going to request 64K bytes from the OS
+ * Move the break 64K bytes up
+ */
+void *malloc(size_t size)
+{
+    if (size == 0)
+        return NULL;
+
+    // Ensure heap initialization
+    if (!heap_start)
+    {
+        if (init_heap() != 0)
+        {
+            return NULL;
+        }
+    }
+
+    size_t asize = ALIGN(size);
+    header_t **plink = find_fit(asize);
+
+    if (!plink)
+        return NULL;
+
+    // Now have the new header pointer 
+    // be at the same place where theres space
+    header_t *h = *plink;
+
+    h = split_block(h, asize);
+    
+    // Update the list to be the next free 
+    *plink = h->next;
+
+    // The current header is now used!
+    h->next = NULL;
+    h->is_used = true;
+    return PAYLOAD(h);
+}
+
+void *calloc(size_t nmemb, size_t size) {
+    // 0-size policy (consistent with your malloc)
+    if (nmemb == 0 || size == 0) {
+        return NULL;
+    }
+
+    // overflow check: nmemb * size
+    if (size > SIZE_MAX / nmemb) {
+        return NULL;
+    }
+
+    size_t total = nmemb * size;
+
+    void *p = malloc(total);
+    if (!p) return NULL;
+
+    // zero exactly the requested bytes
+    memset(p, 0, total);
+    return p;
+}
