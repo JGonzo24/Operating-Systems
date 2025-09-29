@@ -1,20 +1,20 @@
 # ---- toolchain ----
-CC       ?= gcc
-AR       ?= ar
-ARFLAGS  ?= rcs
-CFLAGS   ?= -Wall -Wextra -g
-PIC_FLAG ?= -fPIC
+CC       := gcc
+AR       := ar
+ARFLAGS  := rcs
+CFLAGS   := -Wall -Wextra -g
+PIC_FLAG := -fPIC
 
 # ---- headers ----
 # Put malloc.h in project root (.) or switch this to 'include'
-INC_DIR  ?= .
-CFLAGS   += -I$(INC_DIR) -MMD -MP
+INC_DIR  := .
+CFLAGS   += -I$(INC_DIR)
 
 # ---- names & src ----
-APPNAME  ?= myproj
+APPNAME  := myproj
 APP_SRC  := main.c
 
-LIBNAME  ?= malloc
+LIBNAME  := malloc
 LIB_SRC  := malloc.c
 
 # ---- dirs ----

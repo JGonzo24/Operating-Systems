@@ -1,5 +1,4 @@
 #include "malloc.h"
-
 // Macros
 #define ALIGNMENT 16
 #define ALIGN(size) (((size) + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1))
@@ -15,7 +14,38 @@ char *heap_start = NULL;
 char *heap_end = NULL;
 header_t *free_list = NULL;
 
+#include <stdarg.h>
+#include <unistd.h>   // write
+#include <stdlib.h>   // getenv
 
+// cached on first use: 1=on, 0=off, -1=unknown
+static int dm_state = -1;
+static inline int dm_on(void) {
+    if (dm_state == -1) {
+        dm_state = (getenv("DEBUG_MALLOC") || getenv("DEBUG MALLOC")) ? 1 : 0;
+    }
+    return dm_state;
+}
+
+// recursion guard: snprintf/free(NULL) quirks, etc.
+static __thread int dm_busy = 0;
+
+static inline void dm_log(const char *fmt, ...) {
+    if (!dm_on() || dm_busy) return;
+    dm_busy = 1;
+
+    char buf[256];
+    va_list ap; va_start(ap, fmt);
+    int n = vsnprintf(buf, sizeof buf, fmt, ap);
+    va_end(ap);
+
+    if (n > 0) {
+        if (n > (int)sizeof buf) n = (int)sizeof buf;
+        (void)write(2, buf, (size_t)n);
+        (void)write(2, "\n", 1);
+    }
+    dm_busy = 0;
+}
 
 // Helper Functions
 int init_heap(void)
@@ -143,14 +173,22 @@ bool try_expand(header_t *h, size_t asize)
  * REALLOC
  */
 
-void* realloc(void *ptr, size_t size)
+void *realloc(void *ptr, size_t size)
 {
     if (ptr == NULL)
-        return malloc(size);
-    
+    {
+        dm_busy = 1; // suppress malloc’s own log
+        void *np = malloc(size);
+        dm_busy = 0;
+        dm_log("MALLOC: realloc(%p,%d) => (ptr=%p, size=%d)", (void *)0, (int)size,
+               np, np ? (int)ALIGN(size) : 0);
+        return np;
+    }
+
     if (size == 0)
     {
-        free(ptr);
+        free(ptr); // free() will log on its own
+        dm_log("MALLOC: realloc(%p,%d) => (ptr=%p, size=%d)", ptr, 0, (void *)0, 0);
         return NULL;
     }
 
@@ -298,7 +336,10 @@ void insert_free_block(header_t *h)
 void free(void *ptr)
 {
     if (!ptr)
+    {
+        dm_log("MALLOC: free(%p)", ptr);
         return;
+    }
 
     header_t *h = HDR_FROM_PAYLOAD(ptr);
     h->is_used = false;
@@ -313,8 +354,10 @@ void free(void *ptr)
 void *malloc(size_t size)
 {
     if (size == 0)
+    {
+        dm_log("MALLOC: malloc (%d)=> (ptr %p, size %d)", 0, (void *)0, 0);
         return NULL;
-
+    }
     // Ensure heap initialization
     if (!heap_start)
     {
@@ -341,27 +384,41 @@ void *malloc(size_t size)
 
     // The current header is now used!
     h->next = NULL;
+
     h->is_used = true;
-    return PAYLOAD(h);
+
+    void *ret = PAYLOAD(h);
+    dm_log("MALLOC: malloc(%d) => (ptr=%p, size=%d)", (int)size, ret, (int)asize);
+    return ret;
+
+    
 }
 
 void *calloc(size_t nmemb, size_t size) {
     // 0-size policy (consistent with your malloc)
     if (nmemb == 0 || size == 0) {
+        dm_log("MALLOC: calloc(%d,%d) => (ptr=%p, size=%d)", (int)nmemb, (int)size, (void*)0, 0);
+
         return NULL;
     }
 
     // overflow check: nmemb * size
     if (size > SIZE_MAX / nmemb) {
+        dm_log("MALLOC: calloc(%d,%d) => (ptr=%p, size=%d)", (int)nmemb, (int)size, (void*)0, 0);
+
         return NULL;
     }
 
     size_t total = nmemb * size;
 
     void *p = malloc(total);
-    if (!p) return NULL;
-
+    if (!p) 
+    {
+        dm_log("MALLOC: calloc(%d,%d) => (ptr=%p, size=%d)", (int)nmemb, (int)size, (void*)0, 0);
+        return NULL;
+    }
     // zero exactly the requested bytes
     memset(p, 0, total);
+    dm_log("MALLOC: calloc(%d,%d) => (ptr=%p, size=%d)", (int)nmemb, (int)size, p, (int)total);
     return p;
 }
