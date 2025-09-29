@@ -24,10 +24,6 @@ bin/main: | bin
 bin/main: $(APP_OBJ) lib64/libmalloc.a
 	$(CC) $(CFLAGS) -m64 -o $@ $(APP_OBJ) lib64/libmalloc.a
 
-# If you want to link against the shared lib instead, use this recipe:
-# bin/main: | bin
-# bin/main: $(APP_OBJ) lib64/libmalloc.so
-# 	$(CC) $(CFLAGS) -m64 -o $@ $(APP_OBJ) -Llib64 -lmalloc -Wl,-rpath,'$(PWD)/lib64'
 
 # ----- LIB DIRS -----
 lib:
