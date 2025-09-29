@@ -109,20 +109,20 @@ bool try_expand(header_t *h, size_t asize)
     if (!next || next->is_used)
         return false;
 
-    size_t remaining = h->size - asize;
+    size_t needed = asize - h->size;
     size_t next_total = HDR_SIZE + next->size;
 
-    if (next_total >= remaining)
+    if (next_total >= needed)
     {
         // We can use the next block's memory
         unlink_block(next);
 
-        if (next_total - remaining >= (HDR_SIZE + ALIGNMENT))
+        if (next_total - needed>= (HDR_SIZE + ALIGNMENT))
         {
             // We have room to create a new block
-            char *new_ptr = (char *)next + remaining;
+            char *new_ptr = (char *)next + needed;
             header_t *new = (header_t *)new_ptr;
-            new->size = (next_total - remaining) - HDR_SIZE;
+            new->size = (next_total - needed) - HDR_SIZE;
             new->is_used = false;
             new->next = NULL;
 
@@ -279,13 +279,13 @@ void insert_free_block(header_t *h)
     if (h->next && adjacent_mem(h,h->next))
     {
         header_t *n = h->next;
-        h->size = HDR_SIZE + n->size;
+        h->size += HDR_SIZE + n->size;
         h->next = n->next;
     }
 
     if (prev && adjacent_mem(prev, h))
     {
-        prev->size = HDR_SIZE + h->size;
+        prev->size += HDR_SIZE + h->size;
         prev->next = h->next;
     }
 }
