@@ -13,8 +13,6 @@ static void banner(const char *msg) {
 
 int main(void) {
     // Show basic process/arch info to catch 32/64-bit mismatches
-    fprintf(stderr, "INFO: pid=%d, sizeof(void*)=%zu (expect 8 for 64-bit, 4 for 32-bit)\n",
-            getpid(), sizeof(void*));
 
     // Make sure DEBUG_MALLOC is on (okay if you also export in shell)
     setenv("DEBUG_MALLOC", "1", 1);
@@ -27,38 +25,53 @@ int main(void) {
     // 2) Simple malloc → write → free
     banner("malloc/free");
     void *p = malloc(24);
-    if (!p) { fprintf(stderr, "malloc(24) failed\n"); return 1; }
+    if (!p) {
+        pp(stdout, "malloc failed at line 28\n");
+        return 1;
+    }
     memset(p, 0xAB, 24);
     free(p);
 
     // 3) realloc(NULL, n) should behave like malloc
     banner("realloc(NULL, n)");
     void *r = realloc(NULL, 64);
-    if (!r) { fprintf(stderr, "realloc(NULL,64) failed\n"); return 1; }
+    if (!r) {
+        pp(stdout, "realloc failed\n");
+    }
     memset(r, 0xCD, 64);
 
     // 4) shrink-in-place: realloc down
     banner("realloc shrink");
     r = realloc(r, 16);   // should not move; your logger will show
-    if (!r) { fprintf(stderr, "realloc(...,16) failed\n"); return 1; }
+    if (!r) {
+        pp(stdout, "realloc 16 failed\n");
+    }
 
     // 5) grow: may expand-in-place or move; either way, log shows it
     banner("realloc grow");
     void *oldr = r;
     r = realloc(r, 2000);
-    if (!r) { fprintf(stderr, "realloc(...,2000) failed\n"); return 1; }
-    if (r != oldr) fprintf(stderr, "NOTE: realloc moved block\n");
+    if (!r) {
+        pp(stdout, "Realloc 2000 failed\n");
+    }
+    if (r != oldr)
+        pp(stdout, "realloc moved block\n");
 
     free(r);
 
     // 6) calloc (tests zeroing and overflow path)
     banner("calloc");
     void *c = calloc(3, 10);  // 30 bytes
-    if (!c) { fprintf(stderr, "calloc(3,10) failed\n"); return 1; }
+    if (!c) { 
+        pp(stdout, "calloc(3,10) failed\n"); 
+        return 1; 
+    }
     // sanity check: data should be zero
     for (size_t i = 0; i < 30; i++) {
         if (((unsigned char*)c)[i] != 0) {
-            fprintf(stderr, "ERROR: calloc result not zeroed at i=%zu\n", i);
+            char buf[128];
+            snprintf(buf, sizeof(buf), "ERROR: calloc result not zeroed at i=%zu\n", i);
+            pp(stdout, buf);
             break;
         }
     }
@@ -73,6 +86,7 @@ int main(void) {
     void *z1 = malloc(0);
     void *z2 = calloc(0, 16);
     void *z3 = calloc(16, 0);
+
     // Done
     banner("done");
     return 0;
