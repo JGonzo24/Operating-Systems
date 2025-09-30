@@ -395,10 +395,9 @@ void *realloc(void* ptr, size_t size)
     {
         log_msg("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
                 ptr, (size_t)0, (void*)NULL, (size_t)0);
-        return NULL;
         free(ptr);
+        return NULL;
     }
-
 
     header_t *header = HDR_FROM_PAYLOAD(ptr);
     size_t requested = ALIGN(size);
@@ -453,10 +452,8 @@ void *realloc(void* ptr, size_t size)
     new_h->is_used = true;
 
     void *newp = PAYLOAD_FROM_HDR(new_h);
-    size_t to_copy = new_h->size;
-    if (to_copy > requested)
-        to_copy = requested;
-
+    size_t to_copy = header->size < requested ? header->size : requested;
+    
     memcpy(newp, ptr, to_copy);
     log_msg("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
             ptr, size, newp, requested);
