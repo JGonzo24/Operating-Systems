@@ -121,7 +121,7 @@ void split_block(header_t *h, size_t requested)
     header_t *new_h = (header_t *)(base + HDR_SIZE + requested);
 
     new_h->is_used = false;
-    new_h->next = NULL;
+    new_h->next = h->next;
     new_h->size = remainder - HDR_SIZE;
 
     h->size = requested;
@@ -453,11 +453,11 @@ void *realloc(void* ptr, size_t size)
 
     void *newp = PAYLOAD_FROM_HDR(new_h);
     size_t to_copy = header->size < requested ? header->size : requested;
-    
+
     memcpy(newp, ptr, to_copy);
+
     log_msg("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
             ptr, size, newp, requested);
-    return newp;
     free(ptr);
-
+    return newp;
 }
