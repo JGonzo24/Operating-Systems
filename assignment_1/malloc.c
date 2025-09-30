@@ -13,7 +13,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <stdint.h>
-
+#include <string.h>
 /**
  * @struct header_t
  * @brief This struct defines what is in the header of the chunk
@@ -249,9 +249,11 @@ void* malloc(size_t size)
     if(!heap_initialized)
     {
         if (!grow_heap(requested))
+        {
             log_msg("MALLOC: malloc(%zu) => (ptr=%p, size=%zu)\n", 
                 size, (void*)NULL, (size_t)0);
             return NULL;
+        }
     }
     header_t *new_h = find_fit(requested);
     if (!new_h)
@@ -265,9 +267,11 @@ void* malloc(size_t size)
         new_h = find_fit(requested);
 
         if (!new_h)
+        {
             log_msg("MALLOC: malloc(%zu) => (ptr=%p, size=%zu)\n", 
                 size, (void*)NULL, (size_t)0);
             return NULL;
+        }
     }
     split_block(new_h, requested);
     new_h->is_used = true;
@@ -389,10 +393,10 @@ void *realloc(void* ptr, size_t size)
     }
     if (size == 0)
     {
-        free(ptr);
         log_msg("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
                 ptr, (size_t)0, (void*)NULL, (size_t)0);
         return NULL;
+        free(ptr);
     }
 
 
@@ -454,9 +458,9 @@ void *realloc(void* ptr, size_t size)
         to_copy = requested;
 
     memcpy(newp, ptr, to_copy);
-    free(ptr);
     log_msg("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
             ptr, size, newp, requested);
     return newp;
+    free(ptr);
 
 }
