@@ -3,7 +3,7 @@ CFLAGS  := -Wall -g -fPIC
 TARGET  := malloc
 
 .PHONY: all
-all: $(TARGET) main
+all: $(TARGET) 
 # intel-all creates both 64 and 32 bit versions of the 
 # dynamic shared lib 
 .PHONY: $(TARGET)
@@ -35,15 +35,15 @@ libmalloc.so: malloc64.o
 
 
 # ------- For testing with main.c  ------
-main: malloc main.o
-	$(CC) -o $@ main.o -L. -lmalloc 
-main.o: main.c
-	$(CC) $(CFLAGS) -c $< -o $@ 
+#main: malloc main.o
+#	$(CC) -o $@ main.o -L. -lmalloc 
+#main.o: main.c
+#	$(CC) $(CFLAGS) -c $< -o $@ 
 
 
 # --------- Other ---------
 clean:
 	rm -rf lib lib64
-	rm -f *.o libmalloc.so libmalloc.a main
+	rm -f *.o libmalloc.so libmalloc.a 
 
-.PHONY: malloc clean intel-all main
+.PHONY: malloc clean intel-all
