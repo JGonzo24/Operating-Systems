@@ -183,7 +183,8 @@ header_t *grow_heap(size_t min_payload)
         heap_tail = new_hdr;
     }
 
-    log_msg("[grow heap] base=%p bytes=%zu payload=%zu\n", base, bytes, new_hdr->size);
+    log_msg("[grow heap] base=%p bytes=%zu payload=%zu\n", 
+                        base, bytes, new_hdr->size);
     return new_hdr;
 }
 
@@ -280,7 +281,8 @@ void* malloc(size_t size)
     split_block(new_h, requested);
     new_h->is_used = true;
 
-    log_msg("MALLOC: malloc(%d)     => (ptr=%p, size=%d)\n",size, PAYLOAD_FROM_HDR(new_h), new_h->size);
+    log_msg("MALLOC: malloc(%d) => (ptr=%p, size=%d)\n",
+        size, PAYLOAD_FROM_HDR(new_h), new_h->size);
     return PAYLOAD_FROM_HDR(new_h);
 }
 
@@ -339,7 +341,8 @@ void *calloc(size_t nmemb, size_t size)
 {
     // Match your malloc(0) behavior: return NULL on zero-sized requests
     if (nmemb == 0 || size == 0) {
-        log_msg("[calloc] nmemb=%zu size=%zu -> NULL (zero-sized)\n", nmemb, size);
+        log_msg("[calloc] nmemb=%zu size=%zu -> NULL (zero-sized)\n",
+                nmemb, size);
         return NULL;
     }
 

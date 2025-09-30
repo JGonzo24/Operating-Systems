@@ -37,11 +37,9 @@ static int is_aligned(void *p, size_t alignment) {
 static void test_alignment_and_rw(size_t size, unsigned char pattern) {
     void *p = malloc(size);
     char title[128];
-    snprintf(title, sizeof(title), "malloc(%zu) returned non-NULL", size);
     check(p != NULL, title);
     if (!p) return;
 
-    snprintf(title, sizeof(title), "ptr %p is %zu-byte aligned", p, (size_t)ALIGNMENT);
     check(is_aligned(p, ALIGNMENT), title);
 
     // write & verify within the requested size
@@ -51,10 +49,7 @@ static void test_alignment_and_rw(size_t size, unsigned char pattern) {
     for (size_t i = 0; i < size; ++i) {
         if (b[i] != pattern) { ok = 0; break; }
     }
-    snprintf(title, sizeof(title), "write/read %zu bytes pattern=0x%02X", size, pattern);
     check(ok, title);
-
-    // No free() yet (you said it’s not implemented). We intentionally leak here.
 }
 
 static void test_small_sequence(void) {
