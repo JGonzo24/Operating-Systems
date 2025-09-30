@@ -335,6 +335,12 @@ void free(void* ptr)
 /**
  * @brief 
  * 
+ * calloc() takes two arguments: 
+ * nmemb (number of elements)
+ * size (bytes per element)
+ * 
+ *  Every byte in the returned block is set to 0
+ * 
  * @param nmemb 
  * @param size 
  * @return void* 
@@ -377,5 +383,68 @@ void *calloc(size_t nmemb, size_t size)
  */
 void *realloc(void* ptr, size_t size)
 {
+    if (ptr == NULL)
+    {
+        return malloc(size);
+    }
+    if (size == 0)
+    {
+        free(ptr);
+        return NULL;
+    }
 
+
+    header_t *header = HDR_FROM_PAYLOAD(ptr);
+    size_t requested = ALIGN(size);
+
+    // Shrink in place
+    if (header->size >= requested) 
+    {
+        // We can use this chunk for the new memory
+        split_block(header, requested);
+        return ptr;
+    }
+    else
+    {
+        // Grow in place
+        header_t *next = header->next;
+        if (next && !next->is_used &&
+            ((header->size + HDR_SIZE + next->size) >= (requested)))
+        {
+            header->size += HDR_SIZE + next->size;
+            header->next = next->next;
+            if (heap_tail == next)
+                heap_tail = header;
+
+            split_block(header, requested);
+            return ptr;
+        }
+    }
+
+    // If neither of those, then memcpy()
+
+    header_t *new_h = find_fit(requested);
+    if (!new_h)
+    {
+        if (!grow_heap(requested))
+        {
+            return NULL;
+        }
+        new_h = find_fit(requested);
+
+        if (!new_h)
+            return NULL;
+    }
+    split_block(new_h, requested);
+    new_h->is_used = true;
+
+    void *newp = PAYLOAD_FROM_HDR(new_h);
+    size_t to_copy = new_h->size;
+    if (to_copy > requested)
+        to_copy = requested;
+
+    memcpy(newp, ptr, to_copy);
+    free(ptr);
+
+    return newp;
 }
