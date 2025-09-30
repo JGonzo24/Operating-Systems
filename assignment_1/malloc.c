@@ -129,10 +129,6 @@ void split_block(header_t *h, size_t requested)
 
     if (heap_tail == h)
         heap_tail = new_h;
-
-    
-    log_msg("[split] %p -> used(%zu) + free(%p,%zu)\n",
-            (void*)h, requested, (void*)new_h, new_h->size);
 }
 
 bool align_brk(void)
@@ -153,7 +149,6 @@ header_t *grow_heap(size_t min_payload)
 {
     if (!align_brk())
     {
-        log_msg("grow heap: align failed\n");
         return NULL;
     }
 
@@ -163,7 +158,6 @@ header_t *grow_heap(size_t min_payload)
     void *base = sbrk((uintptr_t)(bytes));
     if (base == (void*)-1)
     {
-        log_msg("grow heap: sbrk failed\n");
         return NULL;
     }
 
@@ -183,8 +177,6 @@ header_t *grow_heap(size_t min_payload)
         heap_tail = new_hdr;
     }
 
-    log_msg("[grow heap] base=%p bytes=%zu payload=%zu\n", 
-                        base, bytes, new_hdr->size);
     return new_hdr;
 }
 
@@ -195,12 +187,9 @@ header_t *find_fit(size_t requested)
     {
         if (!h->is_used && h->size >= requested)
         {
-            log_msg("[find fit] found header=%p size=%zu need=%zu",
-                    (void *)h, h->size, requested);
             return h;
         }
     }
-    log_msg("[find_fit] no block large enough (need %zu)\n", requested);
     return NULL;
 }
 
@@ -216,7 +205,6 @@ header_t *init_heap(size_t reqested)
     
     if (base == (void *)-1)
     {
-        log_msg("Error when using SBRK\n");
         return NULL;
     }
 
@@ -230,7 +218,6 @@ header_t *init_heap(size_t reqested)
     if(pad + HDR_SIZE > PAGE_SIZE)
     {
         // Not big enough!
-        log_msg("After padding space not big enough\n");
         return NULL;
     }
     base_header->is_used = false;
@@ -239,10 +226,6 @@ header_t *init_heap(size_t reqested)
 
     heap_head = heap_tail = base_header;
     heap_initialized = true;
-
-
-    log_msg("[init_heap] base=%p pad=%zu hdr=%p payload=%zu\n",
-            base, pad, (void *)base_header, base_header->size);
 
     return heap_head;
 }
@@ -257,7 +240,8 @@ void* malloc(size_t size)
 {
     if (size == 0)
     {
-        log_msg("MALLOC: malloc(%zu) => (ptr=%p, size=%zu)\n", size, (void*)NULL, (size_t)0);
+        log_msg("MALLOC: malloc(%zu) => (ptr=%p, size=%zu)\n",
+             size, (void*)NULL, (size_t)0);
         return NULL;
     }
 
@@ -309,7 +293,6 @@ void free(void* ptr)
     }
     if((uintptr_t)ptr % ALIGNMENT != 0)
     {
-        log_msg("[free] unaligned payload %p ignored\n", ptr);
         return;
     }
 
@@ -421,7 +404,7 @@ void *realloc(void* ptr, size_t size)
     {
         // We can use this chunk for the new memory
         split_block(header, requested);
-        log_msg("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)  // in-place shrink\n",
+        log_msg("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
                 ptr, size, ptr, header->size);
         return ptr;
     }
