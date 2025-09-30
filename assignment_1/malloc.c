@@ -62,6 +62,12 @@ header_t *new_page(void);
 bool debug_malloc(void);
 void log_msg(const char *str, ...);
 
+/**
+ * @brief Checks if DEBUG_MALLOC set 
+ * 
+ * @return true 
+ * @return false 
+ */
 bool debug_malloc(void)
 {
     if (debug_enabled == false)
@@ -72,7 +78,13 @@ bool debug_malloc(void)
     return debug_enabled;
 }
 
-// Small, reusable helpers
+/**
+ * @brief Helper functions used for rounding
+ * 
+ * @param x 
+ * @param y 
+ * @return size_t 
+ */
 static inline size_t ceil_div(size_t x, size_t y) {
     return (x + y - 1) / y;        // ceil(x / y)
 }
@@ -106,18 +118,29 @@ void log_msg(const char *str, ...)
     }
 }
 
+/**
+ * @brief Split chunk
+ * This function 
+ * @param h 
+ * @param requested 
+ */
 void split_block(header_t *h, size_t requested)
 {
+    // Can't split!
     if (h->size < requested)
         return;
 
+    
     size_t remainder = h->size - requested;
+    
+    // Checking if remainder will fit in chunk
     if (remainder < HDR_SIZE + ALIGNMENT)
     {
         return;
     }
 
     char *base = (char *)h;
+    // Calcualte the new header
     header_t *new_h = (header_t *)(base + HDR_SIZE + requested);
 
     new_h->is_used = false;
@@ -131,12 +154,19 @@ void split_block(header_t *h, size_t requested)
         heap_tail = new_h;
 }
 
+/**
+ * @brief Ensuring that the sbrk() is aligned
+ * 
+ * @return true 
+ * @return false 
+ */
 bool align_brk(void)
 {
     void *cur_brk = sbrk(0);
     if (cur_brk == (void*)-1)
         return false;
 
+    // Align 
     uintptr_t ptr = (uintptr_t)cur_brk;
     size_t pad = (size_t)(ALIGN(ptr) - ptr);
     // Move the brk to be aligned
@@ -147,6 +177,7 @@ bool align_brk(void)
 
 header_t *grow_heap(size_t min_payload)
 {
+    // Check if curr break is alligned
     if (!align_brk())
     {
         return NULL;
@@ -155,17 +186,20 @@ header_t *grow_heap(size_t min_payload)
     // Round up to how many bytes you need
     size_t bytes = round_up(HDR_SIZE + ALIGN(min_payload), PAGE_SIZE);
 
+    // Move brk to alligned addr
     void *base = sbrk((intptr_t)(bytes));
     if (base == (void*)-1)
     {
         return NULL;
     }
 
+    // Update metadata
     header_t *new_hdr = (header_t *)base;
     new_hdr->is_used = false;
     new_hdr->next = NULL;
     new_hdr->size = bytes - HDR_SIZE;
 
+    // Check if this first initialization
     if (!heap_head)
     {
         heap_head = heap_tail = new_hdr;
@@ -173,13 +207,19 @@ header_t *grow_heap(size_t min_payload)
     }
     else
     {
+        // Link the new headers
         heap_tail->next = new_hdr;
         heap_tail = new_hdr;
     }
-
     return new_hdr;
 }
 
+/**
+ * @brief Finds a chunk to put the requested data
+ * 
+ * @param requested 
+ * @return header_t* 
+ */
 header_t *find_fit(size_t requested)
 {
     header_t *h;
@@ -194,44 +234,7 @@ header_t *find_fit(size_t requested)
 }
 
 /**
- * @brief Return the pointer to the new head 
- * 
- * @param reqested 
- * @return header_t* 
- */
-header_t *init_heap(size_t reqested)
-{
-    void *base = sbrk(PAGE_SIZE);
-    
-    if (base == (void *)-1)
-    {
-        return NULL;
-    }
-
-    uintptr_t base_ptr = (uintptr_t)base;
-
-    // Offset 
-    size_t pad = (size_t)(ALIGN(base_ptr) - base_ptr);
-
-    header_t *base_header = (header_t *)(base_ptr + pad); 
-
-    if(pad + HDR_SIZE > PAGE_SIZE)
-    {
-        // Not big enough!
-        return NULL;
-    }
-    base_header->is_used = false;
-    base_header->next = NULL;
-    base_header->size = PAGE_SIZE - pad - HDR_SIZE;
-
-    heap_head = heap_tail = base_header;
-    heap_initialized = true;
-
-    return heap_head;
-}
-
-/**
- * @brief 
+ * @brief MALLOC!
  * 
  * @param size 
  * @return void* 
@@ -248,6 +251,7 @@ void* malloc(size_t size)
     size_t requested = ALIGN(size);
     if(!heap_initialized)
     {
+        // Grow the heap on init
         if (!grow_heap(requested))
         {
             log_msg("MALLOC: malloc(%zu) => (ptr=%p, size=%zu)\n", 
@@ -255,9 +259,11 @@ void* malloc(size_t size)
             return NULL;
         }
     }
+    // Put the header onto heap
     header_t *new_h = find_fit(requested);
     if (!new_h)
     {
+        // Grow heap if needed
         if (!grow_heap(requested))
         {
             log_msg("MALLOC: malloc(%zu) => (ptr=%p, size=%zu)\n", 
@@ -265,7 +271,7 @@ void* malloc(size_t size)
             return NULL;
         }
         new_h = find_fit(requested);
-
+        // If fails, then we are out of memory!
         if (!new_h)
         {
             log_msg("MALLOC: malloc(%zu) => (ptr=%p, size=%zu)\n", 
@@ -273,28 +279,30 @@ void* malloc(size_t size)
             return NULL;
         }
     }
+    // Split the block if needed
     split_block(new_h, requested);
     new_h->is_used = true;
     void *p = PAYLOAD_FROM_HDR(new_h);
 
     log_msg("MALLOC: malloc(%zu) => (ptr=%p, size=%zu)\n", 
             size, p, new_h->size);
-
+    // Return payload pointer
     return p;
 }
 
 /**
- * @brief 
- * 
+ * @brief free()!
  * @param ptr 
  */
 void free(void* ptr)
 {
+    // Don't do anything if NULL
     if (ptr == NULL)
     {
         log_msg("MALLOC: free(%p)\n", (void*)NULL);
         return;
     }
+    // If the ptr is not alligned, do nothing
     if((uintptr_t)ptr % ALIGNMENT != 0)
     {
         return;
@@ -317,16 +325,16 @@ void free(void* ptr)
         return;
     }
 
+    // Ensure that the payload isn't being double freed
     if(!h->is_used)
     {
-        log_msg("MALLOC: free(%p)  // double-free ignored\n", ptr);
+        log_msg("MALLOC: free(%p)\n", ptr);
 
         return;
     }
 
     h->is_used = false;
     log_msg("MALLOC: free(%p)\n", ptr);
-
 }
 
 /**
@@ -344,7 +352,7 @@ void free(void* ptr)
  */
 void *calloc(size_t nmemb, size_t size)
 {
-    // Match your malloc(0) behavior: return NULL on zero-sized requests
+    // Ensure neither number of elements or size == 0
     if (nmemb == 0 || size == 0) {
         log_msg("MALLOC: calloc(%zu,%zu) => (ptr=%p, size=%zu)\n",
             nmemb, size, (void*)NULL, (size_t)0);
@@ -376,7 +384,7 @@ void *calloc(size_t nmemb, size_t size)
 }
 
 /**
- * @brief 
+ * @brief realloc()
  * 
  * @param ptr 
  * @param size 
@@ -384,6 +392,7 @@ void *calloc(size_t nmemb, size_t size)
  */
 void *realloc(void* ptr, size_t size)
 {
+    // Acts as malloc() if NULL
     if (ptr == NULL)
     {
         void *p = malloc(size);
@@ -391,6 +400,7 @@ void *realloc(void* ptr, size_t size)
                 (void *)NULL, size, p, p ? ALIGN(size) : (size_t)0);
         return p;
     }
+    // Acts as free() if size == 0
     if (size == 0)
     {
         log_msg("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
@@ -415,11 +425,15 @@ void *realloc(void* ptr, size_t size)
     {
         // Grow in place
         header_t *next = header->next;
+
+        // Ensure enough size
         if (next && !next->is_used &&
             ((header->size + HDR_SIZE + next->size) >= (requested)))
         {
+            // Update current header and heap pointers
             header->size += HDR_SIZE + next->size;
             header->next = next->next;
+
             if (heap_tail == next)
                 heap_tail = header;
 
@@ -433,6 +447,7 @@ void *realloc(void* ptr, size_t size)
     header_t *new_h = find_fit(requested);
     if (!new_h)
     {
+        // Grow heap if needed
         if (!grow_heap(requested))
         {
             log_msg("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
@@ -448,9 +463,11 @@ void *realloc(void* ptr, size_t size)
             return NULL;
         }
     }
+
     split_block(new_h, requested);
     new_h->is_used = true;
 
+    // Get the new payload pointer and copy over 
     void *newp = PAYLOAD_FROM_HDR(new_h);
     size_t to_copy = header->size < requested ? header->size : requested;
 
