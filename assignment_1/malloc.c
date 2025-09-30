@@ -140,7 +140,7 @@ bool align_brk(void)
     uintptr_t ptr = (uintptr_t)cur_brk;
     size_t pad = (size_t)(ALIGN(ptr) - ptr);
     // Move the brk to be aligned
-    if (pad && sbrk((uintptr_t)pad) == (void*)-1)
+    if (pad && sbrk((intptr_t)pad) == (void*)-1)
         return false;
     return true;
 }
@@ -155,7 +155,7 @@ header_t *grow_heap(size_t min_payload)
     // Round up to how many bytes you need
     size_t bytes = round_up(HDR_SIZE + ALIGN(min_payload), PAGE_SIZE);
 
-    void *base = sbrk((uintptr_t)(bytes));
+    void *base = sbrk((intptr_t)(bytes));
     if (base == (void*)-1)
     {
         return NULL;
