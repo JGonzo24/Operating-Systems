@@ -190,7 +190,8 @@ header_t *grow_heap(size_t min_payload)
 
 header_t *find_fit(size_t requested)
 {
-    for (header_t *h = heap_head; h; h=h->next)
+    header_t *h;
+    for (h = heap_head; h; h = h->next)
     {
         if (!h->is_used && h->size >= requested)
         {
@@ -307,7 +308,8 @@ void free(void* ptr)
     
     // Check if header is in the list
     bool header_in_list = false;
-    for (header_t *curr = heap_head; curr; curr = curr->next)
+    header_t *curr;
+    for (curr = heap_head; curr; curr = curr->next)
     {
         if(curr == h)
         {
