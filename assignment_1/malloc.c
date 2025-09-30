@@ -257,7 +257,7 @@ void* malloc(size_t size)
 {
     if (size == 0)
     {
-        log_msg("MALLOC: Size == 0\n");
+        log_msg("MALLOC: malloc(%zu) => (ptr=%p, size=%zu)\n", size, (void*)NULL, (size_t)0);
         return NULL;
     }
 
@@ -265,6 +265,8 @@ void* malloc(size_t size)
     if(!heap_initialized)
     {
         if (!grow_heap(requested))
+            log_msg("MALLOC: malloc(%zu) => (ptr=%p, size=%zu)\n", 
+                size, (void*)NULL, (size_t)0);
             return NULL;
     }
     header_t *new_h = find_fit(requested);
@@ -272,19 +274,25 @@ void* malloc(size_t size)
     {
         if (!grow_heap(requested))
         {
+            log_msg("MALLOC: malloc(%zu) => (ptr=%p, size=%zu)\n", 
+                size, (void*)NULL, (size_t)0);
             return NULL;
         }
         new_h = find_fit(requested);
 
         if (!new_h)
+            log_msg("MALLOC: malloc(%zu) => (ptr=%p, size=%zu)\n", 
+                size, (void*)NULL, (size_t)0);
             return NULL;
     }
     split_block(new_h, requested);
     new_h->is_used = true;
+    void *p = PAYLOAD_FROM_HDR(new_h);
 
-    log_msg("MALLOC: malloc(%d) => (ptr=%p, size=%d)\n",
-        size, PAYLOAD_FROM_HDR(new_h), new_h->size);
-    return PAYLOAD_FROM_HDR(new_h);
+    log_msg("MALLOC: malloc(%zu) => (ptr=%p, size=%zu)\n", 
+            size, p, new_h->size);
+
+    return p;
 }
 
 /**
@@ -296,6 +304,7 @@ void free(void* ptr)
 {
     if (ptr == NULL)
     {
+        log_msg("MALLOC: free(%p)\n", (void*)NULL);
         return;
     }
     if((uintptr_t)ptr % ALIGNMENT != 0)
@@ -318,18 +327,19 @@ void free(void* ptr)
     }
     if (header_in_list == false)
     {
-        log_msg("[free] header not in list\n");
         return;
     }
 
     if(!h->is_used)
     {
-        log_msg("[free] double free?");
+        log_msg("MALLOC: free(%p)  // double-free ignored\n", ptr);
+
         return;
     }
 
     h->is_used = false;
-    log_msg("[free] %p ok (hdr=%p size =%zu)\n", ptr, (void *)h, h->size);
+    log_msg("MALLOC: free(%p)\n", ptr);
+
 }
 
 /**
@@ -349,28 +359,32 @@ void *calloc(size_t nmemb, size_t size)
 {
     // Match your malloc(0) behavior: return NULL on zero-sized requests
     if (nmemb == 0 || size == 0) {
-        log_msg("[calloc] nmemb=%zu size=%zu -> NULL (zero-sized)\n",
-                nmemb, size);
+        log_msg("MALLOC: calloc(%zu,%zu) => (ptr=%p, size=%zu)\n",
+            nmemb, size, (void*)NULL, (size_t)0);
         return NULL;
     }
 
     // Overflow check: nmemb * size must not wrap
     if (size > SIZE_MAX / nmemb) {
-        log_msg("[calloc] overflow: nmemb=%zu size=%zu\n", nmemb, size);
+        log_msg("MALLOC: calloc(%zu,%zu) => (ptr=%p, size=%zu)  // overflow\n",
+            nmemb, size, (void*)NULL, (size_t)0);
         return NULL;
     }
 
     size_t total = nmemb * size;
 
     void *p = malloc(total);
-    if (!p) {
-        log_msg("[calloc] malloc(%zu) failed\n", total);
+    if (!p)
+    {
+        log_msg("MALLOC: calloc(%zu,%zu) => (ptr=%p, size=%zu)\n",
+                nmemb, size, (void*)NULL, (size_t)0);
         return NULL;
     }
 
     // Zero the allocated payload
     memset(p, 0, total);
-    log_msg("[calloc] ok %zu bytes at %p\n", total, p);
+    log_msg("MALLOC: calloc(%zu,%zu) => (ptr=%p, size=%zu)\n",
+            nmemb, size, p, total);
     return p;
 }
 
@@ -385,11 +399,16 @@ void *realloc(void* ptr, size_t size)
 {
     if (ptr == NULL)
     {
-        return malloc(size);
+        void *p = malloc(size);
+        log_msg("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
+                (void *)NULL, size, p, p ? ALIGN(size) : (size_t)0);
+        return p;
     }
     if (size == 0)
     {
         free(ptr);
+        log_msg("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
+                ptr, (size_t)0, (void*)NULL, (size_t)0);
         return NULL;
     }
 
@@ -402,6 +421,8 @@ void *realloc(void* ptr, size_t size)
     {
         // We can use this chunk for the new memory
         split_block(header, requested);
+        log_msg("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)  // in-place shrink\n",
+                ptr, size, ptr, header->size);
         return ptr;
     }
     else
@@ -428,12 +449,18 @@ void *realloc(void* ptr, size_t size)
     {
         if (!grow_heap(requested))
         {
+            log_msg("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
+                    ptr, size, (void*)NULL, (size_t)0);
             return NULL;
         }
         new_h = find_fit(requested);
 
         if (!new_h)
+        {
+            log_msg("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
+                    ptr, size, (void*)NULL, (size_t)0);
             return NULL;
+        }
     }
     split_block(new_h, requested);
     new_h->is_used = true;
@@ -445,6 +472,8 @@ void *realloc(void* ptr, size_t size)
 
     memcpy(newp, ptr, to_copy);
     free(ptr);
-
+    log_msg("MALLOC: realloc(%p,%zu) => (ptr=%p, size=%zu)\n",
+            ptr, size, newp, requested);
     return newp;
+
 }
