@@ -1,0 +1,17 @@
+# Ignore build artifacts
+build/
+*.o
+*.obj
+*.exe
+*.out
+
+# Ignore Python virtual environment
+venv/
+
+# Ignore Doxygen output
+docs/html/
+docs/latex/
+
+# Ignore Python cache files
+__pycache__/
+*.py[cod]

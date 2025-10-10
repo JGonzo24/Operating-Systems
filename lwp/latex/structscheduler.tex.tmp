@@ -1,0 +1,32 @@
+\doxysection{scheduler Struct Reference}
+\hypertarget{structscheduler}{}\label{structscheduler}\index{scheduler@{scheduler}}
+
+
+Collaboration diagram for scheduler\+:
+% FIG 0
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{structscheduler_aa5e499d5acbb8a6fa72924bcfc944364}\label{structscheduler_aa5e499d5acbb8a6fa72924bcfc944364} 
+void(\texorpdfstring{$\ast$}{*} {\bfseries init} )(void)
+\item 
+\Hypertarget{structscheduler_a5c41feedac8d77dfacfd6421a9031d8d}\label{structscheduler_a5c41feedac8d77dfacfd6421a9031d8d} 
+void(\texorpdfstring{$\ast$}{*} {\bfseries shutdown} )(void)
+\item 
+\Hypertarget{structscheduler_ac7a2563715dde6e4947ac47ebe6443b8}\label{structscheduler_ac7a2563715dde6e4947ac47ebe6443b8} 
+void(\texorpdfstring{$\ast$}{*} {\bfseries admit} )(\mbox{\hyperlink{structthreadinfo__st}{thread}} new)
+\item 
+\Hypertarget{structscheduler_acfb1e21c5c55caad611f375ad507f405}\label{structscheduler_acfb1e21c5c55caad611f375ad507f405} 
+void(\texorpdfstring{$\ast$}{*} {\bfseries remove} )(\mbox{\hyperlink{structthreadinfo__st}{thread}} victim)
+\item 
+\Hypertarget{structscheduler_a55caa00b45eabe7f2e89e259d129ebe8}\label{structscheduler_a55caa00b45eabe7f2e89e259d129ebe8} 
+\mbox{\hyperlink{structthreadinfo__st}{thread}}(\texorpdfstring{$\ast$}{*} {\bfseries next} )(void)
+\item 
+\Hypertarget{structscheduler_afa1d242765572cf87a8f881351be2d50}\label{structscheduler_afa1d242765572cf87a8f881351be2d50} 
+int(\texorpdfstring{$\ast$}{*} {\bfseries qlen} )(void)
+\end{DoxyCompactItemize}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+lwp.\+h\end{DoxyCompactItemize}

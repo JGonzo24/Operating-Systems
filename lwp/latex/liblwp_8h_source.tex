@@ -1,0 +1,30 @@
+\doxysection{liblwp.\+h}
+\hypertarget{liblwp_8h_source}{}\label{liblwp_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ LIB\_LWP\_H}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ LIB\_LWP\_H}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ "{}lwp.h"{}}\ }
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#include\ <sys/types.h>}}
+\DoxyCodeLine{00006\ }
+\DoxyCodeLine{00007\ }
+\DoxyCodeLine{00008\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct}\{}
+\DoxyCodeLine{00009\ \ \ \ \ \mbox{\hyperlink{structthreadinfo__st}{thread}}\ next;}
+\DoxyCodeLine{00010\ \ \ \ \ \mbox{\hyperlink{structthreadinfo__st}{thread}}\ head;}
+\DoxyCodeLine{00011\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ size;}
+\DoxyCodeLine{00012\ \}\ \mbox{\hyperlink{structthread__pool}{thread\_pool}};}
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00014\ tid\_t\ lwp\_create(lwpfun\ function,\ \textcolor{keywordtype}{void}\ *argument);}
+\DoxyCodeLine{00015\ \textcolor{keywordtype}{void}\ lwp\_start(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00016\ \textcolor{keywordtype}{void}\ lwp\_yield(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00017\ \textcolor{keywordtype}{void}\ lwp\_exit(\textcolor{keywordtype}{int}\ exitval);}
+\DoxyCodeLine{00018\ tid\_t\ lwp\_yield(\textcolor{keywordtype}{int}\ exitval);}
+\DoxyCodeLine{00019\ tid\_t\ lwp\_wait(\textcolor{keywordtype}{int}\ status);}
+\DoxyCodeLine{00020\ tid\_t\ lwp\_gettid(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00021\ \mbox{\hyperlink{structthreadinfo__st}{thread}}\ tid2thread(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00022\ \textcolor{keywordtype}{void}\ lwp\_set\_scheduler(\mbox{\hyperlink{structscheduler}{scheduler}}\ sched);}
+\DoxyCodeLine{00023\ \mbox{\hyperlink{structscheduler}{scheduler}}\ lwp\_get\_scheduler(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ LIB\_LWP\_H}}
+
+\end{DoxyCode}

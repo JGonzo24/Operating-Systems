@@ -1,0 +1,26 @@
+\doxysection{schedulers.\+h}
+\hypertarget{schedulers_8h_source}{}\label{schedulers_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ SCHEDULERSH}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ SCHEDULERSH}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <lwp.h>}}
+\DoxyCodeLine{00005\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{structscheduler}{scheduler}}\ AlwaysZero;}
+\DoxyCodeLine{00006\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{structscheduler}{scheduler}}\ ChangeOnSIGTSTP;}
+\DoxyCodeLine{00007\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{structscheduler}{scheduler}}\ ChooseHighestColor;}
+\DoxyCodeLine{00008\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{structscheduler}{scheduler}}\ ChooseLowestColor;}
+\DoxyCodeLine{00009\ }
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00011\ \textcolor{keywordtype}{void}\ \ \ init(\textcolor{keywordtype}{void});\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ initialize\ any\ structures\ \ \ \ \ */}}
+\DoxyCodeLine{00012\ \textcolor{keywordtype}{void}\ \ \ shutdown\ (\textcolor{keywordtype}{void});\ \ \ \ \ \ \ \ \textcolor{comment}{/*\ tear\ down\ any\ structures\ \ \ \ \ \ */}}
+\DoxyCodeLine{00013\ \textcolor{keywordtype}{void}\ \ \ admit(\mbox{\hyperlink{structthreadinfo__st}{thread}}\ \textcolor{keyword}{new});\ \ \ \ \ \textcolor{comment}{/*\ add\ a\ thread\ to\ the\ pool\ \ \ \ \ \ */}}
+\DoxyCodeLine{00014\ \textcolor{keywordtype}{void}\ \ \ remove(\mbox{\hyperlink{structthreadinfo__st}{thread}}\ victim);\ \textcolor{comment}{/*\ remove\ a\ thread\ from\ the\ pool\ */}}
+\DoxyCodeLine{00015\ \mbox{\hyperlink{structthreadinfo__st}{thread}}\ next(\textcolor{keywordtype}{void});\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ select\ a\ thread\ to\ schedule\ \ \ */}}
+\DoxyCodeLine{00016\ \textcolor{keywordtype}{int}\ \ \ \ qlen(\textcolor{keywordtype}{void});\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ number\ of\ ready\ threads\ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ }
+
+\end{DoxyCode}

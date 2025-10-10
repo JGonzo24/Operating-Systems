@@ -1,67 +1,39 @@
-CC       := gcc
-AR       := ar
-CFLAGS   := -Wall -Wextra -g -fPIC \
-            -fno-builtin -fno-builtin-malloc -fno-builtin-free \
-            -fno-builtin-realloc -fno-builtin-calloc
-BUILD    := build
-INC_DIR  := /home/jgonz555/www/Operating-Systems/assign_1/Asgn1/include
-CFLAGS   += -I$(INC_DIR)
+CC      := gcc
+CFLAGS  := -Wall -Wextra -fPIC -g -Iinclude
+LDFLAGS :=
+LDLIBS  := 
 
-LDFLAGS  += -L$(LIB_DIR) -Wl,-rpath,$(LIB_DIR)
-LIB_DIR  := /home/jgonz555/www/Operating-Systems/assign_1/Asgn1/lib64
-LIB_DIR32 := /home/jgonz555/www/Operating-Systems/assign_1/Asgn1/lib
-
-
-# Only external libs here; DO NOT re-list libmalloc.a in LDLIBS (we pass it explicitly in the link rule)
-LDLIBS   := -lpp
-
-.PHONY: all libs clean run intel-all
-all: libs bin/main
-
-# Intel-specific build target
+TARGET  := malloc
+.PHONY: intel-all clean malloc
 intel-all: lib/libmalloc.so lib64/libmalloc.so
 
-# ----- OBJ ------
-OBJ32   := $(BUILD)/malloc32.o
-OBJ64   := $(BUILD)/malloc64.o
-APP_OBJ := $(BUILD)/main.o
 
-bin:
-	mkdir -p bin
-lib:
-	mkdir -p lib
-lib64:
-	mkdir -p lib64
-$(BUILD):
-	mkdir -p $(BUILD)
+$(TARGET): lib64/libmalloc.so lib64/libmalloc.a
+	@echo "Done!"
 
-# ----- STATIC LIBS -----
-lib/libmalloc.a: lib $(OBJ32)
-	$(AR) rcs $@ $(OBJ32)
-lib64/libmalloc.a: lib64 $(OBJ64)
-	$(AR) rcs $@ $(OBJ64)
+# 64 bit version of static
+lib64/libmalloc.a: malloc64.o | lib64
+	ar rcs $@ $< 
 
-# ----- SHARED LIBS (still build them, but we won’use for run in this profile) -----
-lib/libmalloc.so: lib $(OBJ32)
-	$(CC) $(CFLAGS) -m32 -shared -o $@ $(OBJ32) -L$(LIB_DIR32) -Wl,-rpath,$(LIB_DIR32) -lpp
-lib64/libmalloc.so: lib64 $(OBJ64)
-	$(CC) $(CFLAGS) -shared -o $@ $(OBJ64) $(LDFLAGS) $(LDLIBS)
 
-# ----- OBJECTS -----
-$(BUILD)/malloc32.o: malloc.c malloc.h | $(BUILD)
+# Ensure output directories exist
+lib lib64:
+	mkdir -p $@
+
+# 32-bit shared lib
+lib/libmalloc.so: malloc32.o | lib
+	$(CC) -m32 -shared -o $@ $^ $(LDLIBS)
+
+# 64-bit shared lib
+lib64/libmalloc.so: malloc64.o | lib64
+	$(CC) -shared -o $@ $^ $(LDLIBS)
+
+# Objects
+malloc32.o: malloc.c
 	$(CC) $(CFLAGS) -m32 -c -o $@ $<
-$(BUILD)/malloc64.o: malloc.c malloc.h | $(BUILD)
-	$(CC) $(CFLAGS) -m64 -c -o $@ $<
-$(BUILD)/main.o: main.c malloc.h | $(BUILD)
-	$(CC) $(CFLAGS) -m64 -c -o $@ $<
 
-# ----- LINK APP (link your malloc archive; libs AFTER objects) -----
-bin/main: $(APP_OBJ) lib64/libmalloc.a | bin
-	$(CC) -m64 -o $@ $(APP_OBJ) $(LDFLAGS) lib64/libmalloc.a $(LDLIBS)
+malloc64.o: malloc64.c
+	$(CC) $(CFLAGS) -m64 -c -o $@ $<
 
 clean:
-	rm -rf $(BUILD) lib lib64 bin
-
-# No LD_PRELOAD here; your malloc is linked in.
-run: all
-	DEBUG_MALLOC=1 ./bin/main
+	rm -f *.o lib/libmalloc.so lib64/libmalloc.so

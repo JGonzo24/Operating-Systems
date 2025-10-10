@@ -1,0 +1,33 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.1
+date	2024.10.01.21.50.38;	author pnico;	state Exp;
+branches;
+next	;
+
+
+desc
+@Initial revision
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@#ifndef PLNPRINTH
+#define PLNPRINTH
+
+#include <stdio.h>
+
+void pp(FILE *where, char *fmt,...);
+
+#endif
+
+@
