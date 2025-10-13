@@ -73,3 +73,4 @@ load:	cmpq	$0,%rsi
 done:	leave
 	ret
 	
+.section .note.GNU-stack,"",@progbits

@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/home/jgonz555/OS/assign_1",
-      "program": "/home/jgonz555/OS/assign_1/build/Debug/outDebug",
+      "cwd": "/home/jgonz555/OS/lwp",
+      "program": "/home/jgonz555/OS/lwp/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

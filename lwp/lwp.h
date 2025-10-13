@@ -84,6 +84,7 @@ extern thread tid2thread(tid_t tid);
 #define LWPTERMINATED(s)  ( (((s)>>TERMOFFSET)&LWP_TERM) == LWP_TERM )
 #define LWPTERMSTAT(s)    ( (s) & ((1<<TERMOFFSET)-1) )
 
+
 /* prototypes for asm functions */
 void swap_rfiles(rfile *old, rfile *new);
 
