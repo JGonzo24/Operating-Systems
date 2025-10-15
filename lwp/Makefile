@@ -1,80 +1,69 @@
-# ===== Paths ================================================================
+# ===== Paths =====
 DEMO_DIR := Asgn2/demos
-LIB_DIR  := Asgn2/lib64
-INC_DIRS := . $(DEMO_DIR)
+SNAKES_LIBDIR := Asgn2/lib64
+SNAKES_INCDIR := Asgn2/include
+OBJDIR := build
+BINDIR := bin
 
-# ===== Tooling ==============================================================
-CC       := gcc
-WARN     := -Wall -Wextra
-DBG      := -g -O0 -fPIC -fno-omit-frame-pointer
-DEPFLAGS := -MMD -MP
-CFLAGS   := $(WARN) $(DBG) $(DEPFLAGS) $(foreach d,$(INC_DIRS),-I$(d))
-LDFLAGS  := -Wl,-rpath,'$$ORIGIN/../lib64'
-LDLIBS   := -lncurses
+# Tool and flags
+CC := gcc
+CFLAGS := -Wall -Wextra -O2 -fPIC -I. -I$(SNAKES_INCDIR)
+NCURSES_LIB ?= ncursesw
+LDLIBS := -L. -llwp -L$(SNAKES_LIBDIR) -lsnakes -l$(NCURSES_LIB)
 
-# ===== Toggle prebuilt vs local LWP =========================================
-USE_PREBUILT ?= 0
+# ===== Your library =====
+LIB_SRCS := liblwp.c schedulers.c magic64.S
+LIB_OBJS := $(patsubst %.c,$(OBJDIR)/%.o,$(patsubst %.S,$(OBJDIR)/%.o,$(LIB_SRCS)))
 
-# Detect scheduler source (supports either filename)
-SCHED_SRC := $(firstword $(wildcard rr_scheduler.c) $(wildcard schedulers.c))
-ifeq ($(SCHED_SRC),)
-  $(error No scheduler source found: expected rr_scheduler.c or schedulers.c)
-endif
+# ===== Demos (compile Given .c to our build dir) =====
+HUNGRY_OBJS  := $(OBJDIR)/hungrysnakes.o $(OBJDIR)/util.o
+RANDS_OBJS   := $(OBJDIR)/randomsnakes.o $(OBJDIR)/util.o
+NUMBERS_OBJS := $(OBJDIR)/numbersmain.o
 
-# Your local LWP sources (adjust as needed)
-MY_LWP_SRCS := liblwp.c magic64.S $(SCHED_SRC)
-MY_LWP_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(MY_LWP_SRCS)))
+.PHONY: all clean run-hungry run-randomsnakes run-numbers
+all: $(BINDIR)/hungry $(BINDIR)/randomsnakes $(BINDIR)/numbers
 
-# Choose linkage
-ifeq ($(USE_PREBUILT),1)
-  LWP_OBJS :=
-  LWP_LIBS := -L$(LIB_DIR) -lPLN
-else
-  LWP_OBJS := $(MY_LWP_OBJS)
-  LWP_LIBS :=
-endif
+# --- library ---
+liblwp.so: $(LIB_OBJS)
+	$(CC) -shared -o $@ $^
 
-# Snakes shared lib (for demos)
-SNAKES_LIBS := -L$(LIB_DIR) -lsnakes
+# --- demos (link against your liblwp.so) ---
+$(BINDIR)/hungry: liblwp.so $(HUNGRY_OBJS) | $(BINDIR)
+	$(CC) -o $@ $(HUNGRY_OBJS) $(LDLIBS)
 
-# ===== Demos ================================================================
-HUNGRY_OBJS  := $(DEMO_DIR)/hungrysnakes.o $(DEMO_DIR)/util.o
-RANDOM_OBJS  := $(DEMO_DIR)/randomsnakes.o $(DEMO_DIR)/util.o
-NUMBERS_OBJS := $(DEMO_DIR)/numbersmain.o
+$(BINDIR)/randomsnakes: liblwp.so $(RANDS_OBJS) | $(BINDIR)
+	$(CC) -o $@ $(RANDS_OBJS) $(LDLIBS)
 
-.PHONY: all clean
-all: hungry randomsnakes numbers
+$(BINDIR)/numbers: liblwp.so $(NUMBERS_OBJS) | $(BINDIR)
+	$(CC) -o $@ $(NUMBERS_OBJS) $(LDLIBS)
 
-hungry: $(HUNGRY_OBJS) $(LWP_OBJS)
-	$(CC) $(CFLAGS) -o $(DEMO_DIR)/$@ $^ $(SNAKES_LIBS) $(LWP_LIBS) $(LDLIBS) $(LDFLAGS)
+# --- compile rules ---
+$(OBJDIR) $(BINDIR):
+	mkdir -p $@
 
-randomsnakes: $(RANDOM_OBJS) $(LWP_OBJS)
-	$(CC) $(CFLAGS) -o $(DEMO_DIR)/$@ $^ $(SNAKES_LIBS) $(LWP_LIBS) $(LDLIBS) $(LDFLAGS)
-
-numbers: $(NUMBERS_OBJS) $(LWP_OBJS)
-	$(CC) $(CFLAGS) -o $(DEMO_DIR)/$@ $^ $(SNAKES_LIBS) $(LWP_LIBS) $(LDLIBS) $(LDFLAGS)
-
-# Optional standalone test
-test: main.o $(LWP_OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LWP_LIBS) $(LDLIBS) $(LDFLAGS)
-
-# ===== Compile rules + auto-deps ============================================
-$(DEMO_DIR)/%.o: $(DEMO_DIR)/%.c
+$(OBJDIR)/%.o: %.c | $(OBJDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-%.o: %.c
+$(OBJDIR)/%.o: %.S | $(OBJDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-%.o: %.S
-	$(CC) $(CFLAGS) -c $< -o $@
+$(OBJDIR)/%.o: $(DEMO_DIR)/%.c | $(OBJDIR)
+	$(CC) $(CFLAGS) -I$(DEMO_DIR) -c $< -o $@
 
--include $(MY_LWP_OBJS:.o=.d) \
-         $(HUNGRY_OBJS:.o=.d) \
-         $(RANDOM_OBJS:.o=.d) \
-         $(NUMBERS_OBJS:.o=.d) \
-         main.d
+# --- run targets: set LD_LIBRARY_PATH inline ---
+define RUN_WITH_LIBS
+	LD_LIBRARY_PATH="$(PWD):$(PWD)/$(SNAKES_LIBDIR):$$LD_LIBRARY_PATH" $1
+endef
 
-# ===== Clean ================================================================
+run-hungry: $(BINDIR)/hungry
+	$(call RUN_WITH_LIBS,./$(BINDIR)/hungry)
+
+run-randomsnakes: $(BINDIR)/randomsnakes
+	$(call RUN_WITH_LIBS,./$(BINDIR)/randomsnakes)
+
+run-numbers: $(BINDIR)/numbers
+	$(call RUN_WITH_LIBS,./$(BINDIR)/numbers)
+
+# --- clean ---
 clean:
-	rm -f $(DEMO_DIR)/hungry $(DEMO_DIR)/randomsnakes $(DEMO_DIR)/numbers test
-	rm -f $(DEMO_DIR)/*.o $(DEMO_DIR)/*.d *.o *.d
+	rm -rf $(OBJDIR) $(BINDIR) liblwp.so
