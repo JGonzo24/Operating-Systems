@@ -1,5 +1,5 @@
 CC     := gcc
-CFLAGS := -DNUM_PHILOSOPHERS -Wall -g
+CFLAGS := -Wall -g -DNUM_PHILOSOPHERS
 LDFLAGS := -lpthread -lrt
 
 target := dine
