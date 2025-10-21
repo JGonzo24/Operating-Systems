@@ -401,6 +401,7 @@ void lwp_exit(int exitval)
  * Returns if a terminated thread is available, if not then blocks
  * until a thread calls lwp_exit(). Terminated thread is removed from
  * all lists and resources are freed. 
+ * 
  * @param status Pointer to store the exits status
  * @return Thread ID of the reaped thread, or NO_THREAD on fail
  */

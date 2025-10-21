@@ -149,7 +149,7 @@ thread next(void) {
     }
 
     // Rotate: move the head to the back
-    thread chosen = pool.head;        // choose head
+    thread chosen = pool.head;   
     if (pool.head != pool.tail)
     {     // rotate AFTER choosing
         thread old = pool.head;
