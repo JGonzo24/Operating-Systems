@@ -58,6 +58,10 @@ int main(int argc, char **argv) {
     // Ensure the forks are wrapping
     philosophers[i].fork_left = i;
     philosophers[i].fork_right = (i + 1) % NUM_PHILOSOPHERS;
+
+    philosophers[i].has_right = false;
+    philosophers[i].has_left = false;
+
     snprintf(philosophers[i].name, sizeof(philosophers[i].name), "%c", 'A' + i);
   }
   print_header();
@@ -90,7 +94,7 @@ void *philosopher_body(void *arg) {
     // Check if even
     bool even = (p->id % 2 == 0);
 
-    //
+    // check which fork is first
     int first = even ? right : left;
     int second = even ? left : right;
 
@@ -108,7 +112,6 @@ void *philosopher_body(void *arg) {
     } else if (first == right) {
       p->has_right = true;
     }
-
     print_status();
     sem_post(semaphore);
 
@@ -137,7 +140,6 @@ void *philosopher_body(void *arg) {
     sem_post(semaphore);
 
     // Now that we have eaten, we put down forks one at a time
-
     sem_wait(semaphore);
     if (second == left) {
       p->has_left = false;
