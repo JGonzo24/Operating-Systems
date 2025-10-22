@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
       num_cycles = 1;
   }
   printf("Hello world!");
-
+  printf("Hello world!");
   // Now allocate the threads, semaphore, forks, philsophers
   dawdle();
   philosopher_t *philosophers =
