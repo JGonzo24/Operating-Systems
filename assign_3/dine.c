@@ -141,7 +141,6 @@ void *philosopher_body(void *arg) {
 
 
     // Now that we have eaten, we put down forks one at a time
-    sem_post(&forks[second]);
 
     if (second == left)
     {
@@ -152,12 +151,12 @@ void *philosopher_body(void *arg) {
       p->has_right = false;
     }
 
+    sem_post(&forks[second]);
     sem_wait(semaphore);
     print_status();
     sem_post(semaphore);
 
     // Put down first fork
-    sem_post(&forks[first]);
     if (first == left)
     {
       p->has_left = false;
@@ -166,6 +165,8 @@ void *philosopher_body(void *arg) {
     {
       p->has_right = false;
     }
+
+    sem_post(&forks[first]);
     sem_wait(semaphore);
     print_status();
     sem_post(semaphore);
