@@ -181,7 +181,8 @@ void *philosopher_body(void *arg) {
  * are holding on to
  *
  */
-void print_status() {
+void print_status()
+{
   for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
     printf("| ");
     for (int j = 0; j < NUM_PHILOSOPHERS; j++) {
@@ -209,20 +210,34 @@ void print_status() {
   printf("|\n");
 }
 
-void print_header() {
+
+#define CELL_WIDTH 13   // Adjust as needed for column width (13 is good visually)
+
+void print_header(void) {
+  // Top border
   for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
-    printf("|=============");
+    printf("|");
+    for (int j = 0; j < CELL_WIDTH; j++) putchar('=');
   }
   printf("|\n");
 
+  // Header row with philosopher names
   for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
-    printf("|      %c      ", 'A' + i);
-  }
-  printf("|\n");
-  for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
-    printf("|=============");
+    printf("|");
+    int padding = (CELL_WIDTH - 1) / 2;
+    for (int j = 0; j < padding - 1; j++) putchar(' ');
+    printf("%c", 'A' + i);
+    for (int j = 0; j < CELL_WIDTH - padding; j++) putchar(' ');
   }
   printf("|\n");
 
+  // Bottom border
+  for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+    printf("|");
+    for (int j = 0; j < CELL_WIDTH; j++) putchar('=');
+  }
+  printf("|\n");
+
+  // Print initial table snapshot
   print_status();
 }
