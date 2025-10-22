@@ -1,5 +1,6 @@
 #include "dine.h"
 #include "dawdle.h"
+#include <assert.h>
 #include <errno.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -128,6 +129,7 @@ void *philosopher_body(void *arg) {
 
     // Eat now!
     sem_wait(semaphore);
+    assert(p->has_left && p->has_right);
     p->state = EATING;
     print_status();
     sem_post(semaphore);
