@@ -13,6 +13,9 @@ typedef struct philospher_t {
   int fork_right;
   int cycles;
   pthread_t thread;
+
+  bool has_left;
+  bool has_right;
 } philosopher_t;
 
 void display_status(philosopher_t philospher);

@@ -24,5 +24,6 @@ trivial.o: trivial_pt.c
 .PHONY: clean, dine
 clean:
 	rm -f *.o
+	rm dine
 
 
