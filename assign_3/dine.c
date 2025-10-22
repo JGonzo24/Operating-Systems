@@ -133,6 +133,13 @@ void *philosopher_body(void *arg) {
     sem_post(semaphore);
     dawdle();
 
+    // Now in the changing state
+    sem_wait(semaphore);
+    p->state = CHANGING;
+    print_status();
+    sem_post(semaphore);
+
+
     // Now that we have eaten, we put down forks one at a time
     sem_post(&forks[second]);
 
