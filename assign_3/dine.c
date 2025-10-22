@@ -31,11 +31,10 @@ int main(int argc, char **argv) {
     if (num_cycles <= 0)
       num_cycles = 1;
   }
-  
+
   // Now allocate the threads, semaphore, forks, philsophers
   dawdle();
-  philosophers =
-      malloc(NUM_PHILOSOPHERS * sizeof(philosopher_t));
+  philosophers = malloc(NUM_PHILOSOPHERS * sizeof(philosopher_t));
   semaphore = malloc(sizeof(sem_t));
   forks = malloc(NUM_PHILOSOPHERS * sizeof(sem_t));
 
@@ -88,47 +87,45 @@ void *philosopher_body(void *arg) {
   for (int i = 0; i < p->cycles; i++) {
     int left = p->fork_left;
     int right = p->fork_right;
+    // Check if even
     bool even = (p->id % 2 == 0);
+
+    //
     int first = even ? right : left;
     int second = even ? left : right;
 
+    // print first
     sem_wait(semaphore);
     print_status();
     sem_post(semaphore);
 
-    // Pick up first fork 
+    // Pick up first fork
     sem_wait(&forks[first]);
-    
-    if (first == left)
-    {
+
+    sem_wait(semaphore);
+    if (first == left) {
       p->has_left = true;
-    }
-    else if (first == right)
-    {
+    } else if (first == right) {
       p->has_right = true;
     }
 
-    sem_wait(semaphore);
     print_status();
     sem_post(semaphore);
 
     // Pick up second fork
     sem_wait(&forks[second]);
-    if (second == left)
-    {
+    sem_wait(semaphore);
+    if (second == left) {
       p->has_left = true;
-    }
-    else if (second == right)
-    {
+    } else if (second == right) {
       p->has_right = true;
     }
-    sem_wait(semaphore);
     print_status();
     sem_post(semaphore);
 
     // Eat now!
-    p->state = EATING;
     sem_wait(semaphore);
+    p->state = EATING;
     print_status();
     sem_post(semaphore);
     dawdle();
@@ -139,35 +136,27 @@ void *philosopher_body(void *arg) {
     print_status();
     sem_post(semaphore);
 
-
     // Now that we have eaten, we put down forks one at a time
 
-    if (second == left)
-    {
+    sem_wait(semaphore);
+    if (second == left) {
       p->has_left = false;
-    }
-    else if (second == right)
-    {
+    } else if (second == right) {
       p->has_right = false;
     }
-
     sem_post(&forks[second]);
-    sem_wait(semaphore);
     print_status();
     sem_post(semaphore);
 
     // Put down first fork
-    if (first == left)
-    {
+    sem_wait(semaphore);
+    if (first == left) {
       p->has_left = false;
-    }
-    else if (first == right)
-    {
+    } else if (first == right) {
       p->has_right = false;
     }
 
     sem_post(&forks[first]);
-    sem_wait(semaphore);
     print_status();
     sem_post(semaphore);
 
@@ -187,63 +176,50 @@ void *philosopher_body(void *arg) {
 }
 
 /**
-  * Loop through each of the philsophers, ensure
-  * print on a status change and what forks they
-  * are holding on to
-  *
-*/
-void print_status()
-{
-  for (int i = 0; i <NUM_PHILOSOPHERS; i ++)
-  {
+ * Loop through each of the philsophers, ensure
+ * print on a status change and what forks they
+ * are holding on to
+ *
+ */
+void print_status() {
+  for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
     printf("| ");
-    for (int j = 0; j < NUM_PHILOSOPHERS; j++)
-    {
-      if (philosophers[i].has_left && philosophers[i].fork_left == j)
-      {
-        printf("%d",j);
-      }
-      else if (philosophers[i].has_right && philosophers[i].fork_right == j)
-      {
-        printf("%d",j);
-      }
-      else 
-      {
+    for (int j = 0; j < NUM_PHILOSOPHERS; j++) {
+      if (philosophers[i].has_left && philosophers[i].fork_left == j) {
+        printf("%d", j);
+      } else if (philosophers[i].has_right && philosophers[i].fork_right == j) {
+        printf("%d", j);
+      } else {
         printf("-");
       }
     }
 
-    switch (philosophers[i].state)
-    {
-      case CHANGING:
-        printf("       ");
-        break;
-      case THINKING:
-        printf(" Think ");
-        break;
-      case EATING:
-        printf(" Eat   ");
-        break;
+    switch (philosophers[i].state) {
+    case CHANGING:
+      printf("       ");
+      break;
+    case THINKING:
+      printf(" Think ");
+      break;
+    case EATING:
+      printf(" Eat   ");
+      break;
     }
   }
   printf("|\n");
 }
 
-void print_header()
-{
-  for (int i = 0; i < NUM_PHILOSOPHERS; i ++)
-  {
+void print_header() {
+  for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
     printf("|=============");
   }
   printf("|\n");
 
-  for (int i = 0; i < NUM_PHILOSOPHERS; i ++)
-  {
-    printf("|      %c      ",'A' +i);
+  for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+    printf("|      %c      ", 'A' + i);
   }
   printf("|\n");
-  for (int i = 0; i < NUM_PHILOSOPHERS; i ++)
-  {
+  for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
     printf("|=============");
   }
   printf("|\n");
