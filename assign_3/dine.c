@@ -210,8 +210,9 @@ void print_status()
   printf("|\n");
 }
 
-
-#define CELL_WIDTH 13   // Adjust as needed for column width (13 is good visually)
+// 8 = 5 (for the width of 'think') + padding
+#define PADDING 8
+#define CELL_WIDTH NUM_PHILOSOPHERS + PADDING
 
 void print_header(void) {
   // Top border
