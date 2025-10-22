@@ -99,11 +99,6 @@ void *philosopher_body(void *arg) {
     int first = even ? right : left;
     int second = even ? left : right;
 
-    // print first
-    sem_wait(semaphore);
-    print_status();
-    sem_post(semaphore);
-
     // Pick up first fork
     sem_wait(&forks[first]);
 
@@ -166,6 +161,7 @@ void *philosopher_body(void *arg) {
 
     // Think and mark thinking
     sem_wait(semaphore);
+    assert(!(p->has_right) && !(p->has_left)); // ensure no forks
     p->state = THINKING;
     print_status();
     sem_post(semaphore);
@@ -227,4 +223,6 @@ void print_header() {
     printf("|=============");
   }
   printf("|\n");
+
+  print_status();
 }
