@@ -26,6 +26,7 @@ int main(int argc, char **argv) {
     if (num_cycles <= 0)
       num_cycles = 1;
   }
+  printf("Hello world!");
 
   // Now allocate the threads, semaphore, forks, philsophers
   dawdle();
