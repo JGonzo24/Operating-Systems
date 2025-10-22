@@ -30,6 +30,7 @@ int main(int argc, char **argv) {
   printf("Hello world!");
   printf("Hello world3");
   printf("hello world4");
+  printf("hello world6");
   printf("hello world5");
   // Now allocate the threads, semaphore, forks, philsophers
   dawdle();
