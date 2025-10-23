@@ -1,31 +1,26 @@
 #include "dine.h"
 #include "dawdle.h"
-#include <assert.h>
-#include <errno.h>
-#include <pthread.h>
-#include <semaphore.h>
-#include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #ifndef NUM_PHILOSOPHERS
 #define NUM_PHILOSOPHERS 5
 #endif
 
+// 8 = 5 (for the width of 'think') + three spaces
+#define PADDING 8
+#define CELL_WIDTH NUM_PHILOSOPHERS + PADDING
+
 int philosopher_id = 0;
-sem_t *semaphore;
+sem_t *print_semaphore;
 sem_t *forks;
 philosopher_t *philosophers;
 
-void *philosopher_body(void *arg);
-void print_header();
-void print_status();
 /**
- * @brief
+ * @brief Inits, Creates, Free 
  *
- * Allocate sizes for the threads, semaphores, and the philsopher struct
  */
 int main(int argc, char **argv) {
+  // Take in arguments, default num_cycles to 1
   int num_cycles = 1;
   if (argc == 2) {
     num_cycles = atoi(argv[1]);
@@ -35,55 +30,21 @@ int main(int argc, char **argv) {
 
   // Now allocate the threads, semaphore, forks, philsophers
   dawdle();
-  philosophers = malloc(NUM_PHILOSOPHERS * sizeof(philosopher_t));
-  semaphore = malloc(sizeof(sem_t));
-  forks = malloc(NUM_PHILOSOPHERS * sizeof(sem_t));
 
-  if (!philosophers || !semaphore || !forks) {
-    perror("Malloc failed!");
-    exit(EXIT_FAILURE);
-  }
+  // Allocate the philosophers and their forks
+  safe_alloc();
 
-  // Init the semaphores (forks)
-  for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
-    sem_init(&forks[i], 0, 1);
-  }
-  sem_init(semaphore, 0, 1); // Init the printing semaphore
+  // Initialize philosophers and their forks 
+  init_all(num_cycles);
 
-  // Initialize the philosophers
-  for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
-    philosophers[i].id = i;
-    philosophers[i].state = CHANGING;
-    philosophers[i].cycles = num_cycles;
-
-    // Ensure the forks are wrapping
-    philosophers[i].fork_left = i;
-    philosophers[i].fork_right = (i + 1) % NUM_PHILOSOPHERS;
-
-    philosophers[i].has_right = false;
-    philosophers[i].has_left = false;
-
-    snprintf(philosophers[i].name, sizeof(philosophers[i].name), "%c", 'A' + i);
-  }
+  // Print out the first header for all philosopehrs
   print_header();
+
   // Create the threads
-  for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
-    int return_val = pthread_create(&philosophers[i].thread, NULL,
-                                    philosopher_body, &philosophers[i]);
-    if (return_val != 0) {
-      errno = return_val;
-      perror("Thread create error");
-      free(philosophers);
-      exit(EXIT_FAILURE);
-    }
-  }
+  safe_create();
+
   // Wait for threads to terminate, join
-  for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
-    pthread_join(philosophers[i].thread, NULL);
-  }
-  free(forks);
-  free(semaphore);
-  free(philosophers);
+  cleanup();
 }
 
 void *philosopher_body(void *arg) {
@@ -99,78 +60,102 @@ void *philosopher_body(void *arg) {
     int first = even ? right : left;
     int second = even ? left : right;
 
-    // Pick up first fork
-    sem_wait(&forks[first]);
+    // Pick up forks in deadlock-avoiding order
+    pick_up(p, first);
+    pick_up(p, second);
 
-    sem_wait(semaphore);
-    if (first == left) {
-      p->has_left = true;
-    } else if (first == right) {
-      p->has_right = true;
-    }
-    print_status();
-    sem_post(semaphore);
+    // Eat
+    safe_wait(print_semaphore);
+    safe_post(print_semaphore);
 
-    // Pick up second fork
-    sem_wait(&forks[second]);
-    sem_wait(semaphore);
-    if (second == left) {
-      p->has_left = true;
-    } else if (second == right) {
-      p->has_right = true;
-    }
-    print_status();
-    sem_post(semaphore);
-
-    // Eat now!
-    sem_wait(semaphore);
-    assert(p->has_left && p->has_right);
-    p->state = EATING;
-    print_status();
-    sem_post(semaphore);
+    set_state_and_log(p, EATING);
     dawdle();
 
-    // Now in the changing state
-    sem_wait(semaphore);
-    p->state = CHANGING;
-    print_status();
-    sem_post(semaphore);
+    // Transition
+    set_state_and_log(p, CHANGING);
 
-    // Now that we have eaten, we put down forks one at a time
-    sem_wait(semaphore);
-    if (second == left) {
-      p->has_left = false;
-    } else if (second == right) {
-      p->has_right = false;
-    }
-    sem_post(&forks[second]);
-    print_status();
-    sem_post(semaphore);
+    // Put down forks
+    put_down(p, second);
+    put_down(p, first);
 
-    // Put down first fork
-    sem_wait(semaphore);
-    if (first == left) {
-      p->has_left = false;
-    } else if (first == right) {
-      p->has_right = false;
-    }
-
-    sem_post(&forks[first]);
-    print_status();
-    sem_post(semaphore);
-
-    // Think and mark thinking
-    sem_wait(semaphore);
-    assert(!(p->has_right) && !(p->has_left)); // ensure no forks
-    p->state = THINKING;
-    print_status();
-    sem_post(semaphore);
+    // Think
+    set_state_and_log(p, THINKING);
     dawdle();
 
-    sem_wait(semaphore);
-    p->state = CHANGING;
-    print_status();
-    sem_post(semaphore);
+    // Back to transitional state for next cycle
+    set_state_and_log(p, CHANGING);
+
+   // safe_wait(&forks[first]);
+   // safe_wait(print_semaphore);
+   // if (first == left) {
+   //   p->has_left = true;
+   // } else if (first == right) {
+   //   p->has_right = true;
+   // }
+   // print_status();
+   // safe_post(print_semaphore);
+
+   // // Pick up second fork
+   // safe_wait(&forks[second]);
+   // safe_wait(print_semaphore);
+   // if (second == left) {
+   //   p->has_left = true;
+   // } else if (second == right) {
+   //   p->has_right = true;
+   // }
+   // print_status();
+   // safe_post(print_semaphore);
+
+   // // Eat now!
+   // safe_wait(print_semaphore);
+   // assert(p->has_left && p->has_right);
+   // p->state = EATING;
+   // print_status();
+   // safe_post(print_semaphore);
+   // dawdle();
+
+   // // Now in the changing state
+   // safe_wait(print_semaphore);
+   // p->state = CHANGING;
+   // print_status();
+   // safe_post(print_semaphore);
+
+   // // Now that we have eaten, we put down forks one at a time
+   // safe_wait(print_semaphore);
+   // if (second == left) {
+   //   p->has_left = false;
+   // } else if (second == right) {
+   //   p->has_right = false;
+   // }
+   // safe_post(&forks[second]);
+   // print_status();
+   // safe_post(print_semaphore);
+
+   // // Put down first fork
+   // safe_wait(print_semaphore);
+   // if (first == left) {
+   //   p->has_left = false;
+   // } else if (first == right) {
+   //   p->has_right = false;
+   // }
+
+   // // Put down fork
+   // safe_post(&forks[first]);
+   // print_status();
+   // safe_post(print_semaphore);
+
+   // // Think and mark thinking
+   // safe_wait(print_semaphore);
+   // assert(!(p->has_right) && !(p->has_left)); // ensure no forks
+   // p->state = THINKING;
+   // print_status();
+   // safe_post(print_semaphore);
+   // dawdle();
+
+   // safe_wait(print_semaphore);
+   // p->state = CHANGING;
+   // print_status();
+   // safe_post(print_semaphore);
   }
   return NULL;
 }
@@ -210,9 +195,6 @@ void print_status()
   printf("|\n");
 }
 
-// 8 = 5 (for the width of 'think') + padding
-#define PADDING 8
-#define CELL_WIDTH NUM_PHILOSOPHERS + PADDING
 
 void print_header(void) {
   // Top border
@@ -241,4 +223,134 @@ void print_header(void) {
 
   // Print initial table snapshot
   print_status();
+}
+
+
+void safe_wait(sem_t* sempahore)
+{
+  int ret_val = sem_wait(sempahore);
+  if (ret_val != 0)
+  {
+    perror("Problem with sem_wait()");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void safe_post(sem_t* semaphore)
+{
+  int ret_val = sem_post(semaphore);
+  if (ret_val != 0)
+  {
+    perror("Problem with sem_post()");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void init_all(int num_cycles)
+{
+
+  // Init the semaphores (forks)
+  for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+    int return_val = sem_init(&forks[i], 0, 1); 
+    if (return_val != 0)
+    {
+      perror("sem_init() error!");
+      exit(EXIT_FAILURE);
+    }
+  }
+  int return_val = sem_init(print_semaphore, 0, 1); 
+  if (return_val != 0)
+  {
+    perror("sem_init() error!");
+    exit(EXIT_FAILURE);
+  }
+
+
+  // Init the philosophers
+  for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+    philosophers[i].id = i;
+    philosophers[i].state = CHANGING;
+    philosophers[i].cycles = num_cycles;
+
+    // Ensure the forks are wrapping
+    philosophers[i].fork_left = i;
+    philosophers[i].fork_right = (i + 1) % NUM_PHILOSOPHERS;
+
+    // Ensure starting off with no held forks
+    philosophers[i].has_right = false;
+    philosophers[i].has_left = false;
+
+    // Save name 
+    snprintf(philosophers[i].name, sizeof(philosophers[i].name),
+                                                         "%c", 'A' + i);
+  }
+}
+
+void safe_alloc(void)
+{
+  philosophers = malloc(NUM_PHILOSOPHERS * sizeof(philosopher_t));
+  print_semaphore = malloc(sizeof(sem_t));
+  forks = malloc(NUM_PHILOSOPHERS * sizeof(sem_t));
+
+  if (!philosophers || !print_semaphore || !forks) {
+    perror("Malloc failed!");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void safe_create(void)
+{
+  for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+    int return_val = pthread_create(&philosophers[i].thread, NULL,
+                                    philosopher_body, &philosophers[i]);
+    if (return_val != 0) {
+      errno = return_val;
+      perror("Thread create error");
+      free(philosophers);
+      exit(EXIT_FAILURE);
+    }
+  }
+}
+
+void cleanup(void)
+{
+  for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+    pthread_join(philosophers[i].thread, NULL);
+  }
+
+  free(forks);
+  free(print_semaphore);
+  free(philosophers);
+}
+
+void set_state_and_log(philosopher_t *p, state_t s)
+{
+  safe_wait(print_semaphore);
+  p->state = s;
+  print_status();
+  safe_post(print_semaphore);
+}
+
+void set_fork_flag_and_log(philosopher_t *p, int fork, bool has)
+{
+  safe_wait(print_semaphore);
+  if (fork == p->fork_left) {
+      p->has_left = has;
+    } else if (fork == p->fork_right) {
+      p->has_right = has;
+    }
+  print_status();
+  safe_post(print_semaphore);
+}
+
+void pick_up(philosopher_t *p, int fork_index)
+{
+  safe_wait(&forks[fork_index]);
+  set_fork_flag_and_log(p, fork_index, true);
+}
+
+void put_down(philosopher_t *p, int fork_index)
+{
+  set_fork_flag_and_log(p, fork_index, false);
+  safe_post(&forks[fork_index]);
 }
