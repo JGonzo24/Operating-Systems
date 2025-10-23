@@ -25,7 +25,7 @@ typedef struct philospher_t {
   bool has_right;
 } philosopher_t;
 
-void safe_wait(sem_t* sempahore);
+void safe_wait(sem_t* semaphore);
 void safe_post(sem_t* semaphore);
 void print_header(void);
 void print_status();

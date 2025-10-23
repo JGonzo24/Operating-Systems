@@ -1,5 +1,6 @@
 #include "dine.h"
 #include "dawdle.h"
+#include <semaphore.h>
 #include <stdlib.h>
 
 #ifndef NUM_PHILOSOPHERS
@@ -10,7 +11,6 @@
 #define PADDING 8
 #define CELL_WIDTH NUM_PHILOSOPHERS + PADDING
 
-int philosopher_id = 0;
 sem_t *print_semaphore;
 sem_t *forks;
 philosopher_t *philosophers;
@@ -18,7 +18,8 @@ philosopher_t *philosophers;
 /**
  * @brief Inits, Creates, Free
  */
-int main(int argc, char **argv) {
+int main(int argc, char **argv) 
+{
   // Take in arguments, default num_cycles to 1
   int num_cycles = 1;
   if (argc == 2) {
@@ -26,9 +27,6 @@ int main(int argc, char **argv) {
     if (num_cycles <= 0)
       num_cycles = 1;
   }
-
-  // Now allocate the threads, semaphore, forks, philsophers
-  dawdle();
 
   // Allocate the philosophers and their forks
   safe_alloc();
@@ -48,13 +46,11 @@ int main(int argc, char **argv) {
 
 
 /**
- * @brief 
- * This is going to run each time 
- * the philosophers are created
+ * @brief A philosopher's meaning of life 
  */ 
 
-void *philosopher_body(void *arg) {
-
+void *philosopher_body(void *arg) 
+{
   philosopher_t *p = arg;
   for (int i = 0; i < p->cycles; i++) {
     int left = p->fork_left;
@@ -128,8 +124,8 @@ void print_status()
   printf("|\n");
 }
 
-
-void print_header(void) {
+void print_header(void) 
+{
   // Top border
   for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
     printf("|");
@@ -161,9 +157,9 @@ void print_header(void) {
 /**
   * @brief Error checking sem_wait()
   */
-void safe_wait(sem_t* sempahore)
+void safe_wait(sem_t* semaphore)
 {
-  int ret_val = sem_wait(sempahore);
+  int ret_val = sem_wait(semaphore);
   if (ret_val != 0)
   {
     perror("Problem with sem_wait()");
@@ -254,6 +250,9 @@ void safe_create(void)
       errno = return_val;
       perror("Thread create error");
       free(philosophers);
+      free(print_semaphore);
+      free(forks);
+
       exit(EXIT_FAILURE);
     }
   }
@@ -267,6 +266,13 @@ void cleanup(void)
   for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
     pthread_join(philosophers[i].thread, NULL);
   }
+
+  // Destroy Semaphores
+  for(int i = 0; i < NUM_PHILOSOPHERS; i++)
+  {
+    sem_destroy(&forks[i]);
+  }
+  sem_destroy(print_semaphore);
 
   free(forks);
   free(print_semaphore);
@@ -310,7 +316,7 @@ void pick_up(philosopher_t *p, int fork_index)
 
 
 /**
-  * @brief Philsopher pupts down fork, updates flags, logs
+  * @brief Philsopher sets down fork, updates flags, logs
   */ 
 void put_down(philosopher_t *p, int fork_index)
 {
