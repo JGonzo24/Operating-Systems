@@ -6,7 +6,7 @@
 #define NUM_PHILOSOPHERS 5
 #endif
 
-// 8 = 5 (for the width of 'think') + three spaces
+// PADDING = 5 (for the width of 'think') + three spaces
 #define PADDING 8
 #define CELL_WIDTH NUM_PHILOSOPHERS + PADDING
 
@@ -16,8 +16,7 @@ sem_t *forks;
 philosopher_t *philosophers;
 
 /**
- * @brief Inits, Creates, Free 
- *
+ * @brief Inits, Creates, Free
  */
 int main(int argc, char **argv) {
   // Take in arguments, default num_cycles to 1
@@ -47,6 +46,13 @@ int main(int argc, char **argv) {
   cleanup();
 }
 
+
+/**
+ * @brief 
+ * This is going to run each time 
+ * the philosophers are created
+ */ 
+
 void *philosopher_body(void *arg) {
 
   philosopher_t *p = arg;
@@ -65,9 +71,6 @@ void *philosopher_body(void *arg) {
     pick_up(p, second);
 
     // Eat
-    safe_wait(print_semaphore);
-    safe_post(print_semaphore);
-
     set_state_and_log(p, EATING);
     dawdle();
 
@@ -85,85 +88,15 @@ void *philosopher_body(void *arg) {
     // Back to transitional state for next cycle
     set_state_and_log(p, CHANGING);
 
-   // safe_wait(&forks[first]);
-   // safe_wait(print_semaphore);
-   // if (first == left) {
-   //   p->has_left = true;
-   // } else if (first == right) {
-   //   p->has_right = true;
-   // }
-   // print_status();
-   // safe_post(print_semaphore);
-
-   // // Pick up second fork
-   // safe_wait(&forks[second]);
-   // safe_wait(print_semaphore);
-   // if (second == left) {
-   //   p->has_left = true;
-   // } else if (second == right) {
-   //   p->has_right = true;
-   // }
-   // print_status();
-   // safe_post(print_semaphore);
-
-   // // Eat now!
-   // safe_wait(print_semaphore);
-   // assert(p->has_left && p->has_right);
-   // p->state = EATING;
-   // print_status();
-   // safe_post(print_semaphore);
-   // dawdle();
-
-   // // Now in the changing state
-   // safe_wait(print_semaphore);
-   // p->state = CHANGING;
-   // print_status();
-   // safe_post(print_semaphore);
-
-   // // Now that we have eaten, we put down forks one at a time
-   // safe_wait(print_semaphore);
-   // if (second == left) {
-   //   p->has_left = false;
-   // } else if (second == right) {
-   //   p->has_right = false;
-   // }
-   // safe_post(&forks[second]);
-   // print_status();
-   // safe_post(print_semaphore);
-
-   // // Put down first fork
-   // safe_wait(print_semaphore);
-   // if (first == left) {
-   //   p->has_left = false;
-   // } else if (first == right) {
-   //   p->has_right = false;
-   // }
-
-   // // Put down fork
-   // safe_post(&forks[first]);
-   // print_status();
-   // safe_post(print_semaphore);
-
-   // // Think and mark thinking
-   // safe_wait(print_semaphore);
-   // assert(!(p->has_right) && !(p->has_left)); // ensure no forks
-   // p->state = THINKING;
-   // print_status();
-   // safe_post(print_semaphore);
-   // dawdle();
-
-   // safe_wait(print_semaphore);
-   // p->state = CHANGING;
-   // print_status();
-   // safe_post(print_semaphore);
   }
   return NULL;
 }
 
+
 /**
  * Loop through each of the philsophers, ensure
  * print on a status change and what forks they
- * are holding on to
+ * are holding on to.
  *
  */
 void print_status()
@@ -225,7 +158,9 @@ void print_header(void) {
   print_status();
 }
 
-
+/**
+  * @brief Error checking sem_wait()
+  */
 void safe_wait(sem_t* sempahore)
 {
   int ret_val = sem_wait(sempahore);
@@ -236,6 +171,9 @@ void safe_wait(sem_t* sempahore)
   }
 }
 
+/**
+  * @brief Error checking sem_post();
+  */  
 void safe_post(sem_t* semaphore)
 {
   int ret_val = sem_post(semaphore);
@@ -246,6 +184,9 @@ void safe_post(sem_t* semaphore)
   }
 }
 
+/**
+  * @brief Error checking and initializing semaphores and threads
+  */  
 void init_all(int num_cycles)
 {
 
@@ -286,6 +227,9 @@ void init_all(int num_cycles)
   }
 }
 
+/**
+  * @brief Error checking malloc()
+  */  
 void safe_alloc(void)
 {
   philosophers = malloc(NUM_PHILOSOPHERS * sizeof(philosopher_t));
@@ -298,6 +242,9 @@ void safe_alloc(void)
   }
 }
 
+/**
+  * @brief Error checking pthread_create()
+  */  
 void safe_create(void)
 {
   for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
@@ -312,6 +259,9 @@ void safe_create(void)
   }
 }
 
+/**
+  * @brief Cleans up and deallocates memory
+  */  
 void cleanup(void)
 {
   for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
@@ -323,6 +273,9 @@ void cleanup(void)
   free(philosophers);
 }
 
+/**
+  * @brief Sets the new philosopher state and logs change
+  */  
 void set_state_and_log(philosopher_t *p, state_t s)
 {
   safe_wait(print_semaphore);
@@ -331,6 +284,9 @@ void set_state_and_log(philosopher_t *p, state_t s)
   safe_post(print_semaphore);
 }
 
+/**
+  * @brief Updates philosopher's has_fork boolean
+  */  
 void set_fork_flag_and_log(philosopher_t *p, int fork, bool has)
 {
   safe_wait(print_semaphore);
@@ -343,12 +299,19 @@ void set_fork_flag_and_log(philosopher_t *p, int fork, bool has)
   safe_post(print_semaphore);
 }
 
+/**
+  * @brief Philsopher picks up fork, updates flags, logs
+  */ 
 void pick_up(philosopher_t *p, int fork_index)
 {
   safe_wait(&forks[fork_index]);
   set_fork_flag_and_log(p, fork_index, true);
 }
 
+
+/**
+  * @brief Philsopher pupts down fork, updates flags, logs
+  */ 
 void put_down(philosopher_t *p, int fork_index)
 {
   set_fork_flag_and_log(p, fork_index, false);
