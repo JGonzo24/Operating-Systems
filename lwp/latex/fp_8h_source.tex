@@ -1,0 +1,138 @@
+\doxysection{fp.\+h}
+\hypertarget{fp_8h_source}{}\label{fp_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ FPH}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ FPH}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00006\ \textcolor{comment}{/*\ the\ saved\ state\ for\ the\ floating\ point\ unit,\ as\ defined\ at}}
+\DoxyCodeLine{00007\ \textcolor{comment}{\ *\ http://www.intel.com/content/dam/www/public/us/en/documents/manuals/\(\backslash\)}}
+\DoxyCodeLine{00008\ \textcolor{comment}{\ \ \ \ \ \ \ 64-\/ia-\/32-\/architectures-\/software-\/developer-\/manual-\/325462.pdf}}
+\DoxyCodeLine{00009\ \textcolor{comment}{\ *\ This\ area\ must\ be\ 16-\/byte\ aligned.}}
+\DoxyCodeLine{00010\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#if\ defined(\_\_x86\_64)}}
+\DoxyCodeLine{00012\ \textcolor{keyword}{struct\ }\_\_attribute\_\_\ ((aligned(16)))\ \_\_attribute\_\_\ ((\_\_packed\_\_))\ fxsave\ \{}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\ \ \#ifdef\ \ \_\_clang\_\_}}
+\DoxyCodeLine{00014\ \ \ uint8\_t\ all[512];}
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\ \ \#else}}
+\DoxyCodeLine{00016\ \ \ uint16\_t\ pad1;}
+\DoxyCodeLine{00017\ \ \ uint16\_t\ cs\_ip\_bits;}
+\DoxyCodeLine{00018\ \ \ uint32\_t\ fpu\_ip\_bits;}
+\DoxyCodeLine{00019\ \ \ uint16\_t\ fop;}
+\DoxyCodeLine{00020\ \ \ uint8\_t\ \ pad2;}
+\DoxyCodeLine{00021\ \ \ uint8\_t\ \ ftw;}
+\DoxyCodeLine{00022\ \ \ uint16\_t\ fsw;}
+\DoxyCodeLine{00023\ \ \ uint16\_t\ fcw;}
+\DoxyCodeLine{00024\ \ \ uint32\_t\ mxcsr\_mask;}
+\DoxyCodeLine{00025\ \ \ uint32\_t\ mxcsr;}
+\DoxyCodeLine{00026\ \ \ uint16\_t\ pad3;}
+\DoxyCodeLine{00027\ \ \ uint16\_t\ fpu\_dp\_bits\_high;}
+\DoxyCodeLine{00028\ \ \ uint32\_t\ fpu\_dp\_bits\_low;}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \ \ uint8\_t\ padst0[6];\ \_\_float80\ st0;}
+\DoxyCodeLine{00031\ \ \ uint8\_t\ padst1[6];\ \_\_float80\ st1;}
+\DoxyCodeLine{00032\ \ \ uint8\_t\ padst2[6];\ \_\_float80\ st2;}
+\DoxyCodeLine{00033\ \ \ uint8\_t\ padst3[6];\ \_\_float80\ st3;}
+\DoxyCodeLine{00034\ \ \ uint8\_t\ padst4[6];\ \_\_float80\ st4;}
+\DoxyCodeLine{00035\ \ \ uint8\_t\ padst5[6];\ \_\_float80\ st5;}
+\DoxyCodeLine{00036\ \ \ uint8\_t\ padst6[6];\ \_\_float80\ st6;}
+\DoxyCodeLine{00037\ \ \ uint8\_t\ padst7[6];\ \_\_float80\ st7;}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \ \ \_\_float128\ xmm0;}
+\DoxyCodeLine{00040\ \ \ \_\_float128\ xmm1;}
+\DoxyCodeLine{00041\ \ \ \_\_float128\ xmm2;}
+\DoxyCodeLine{00042\ \ \ \_\_float128\ xmm3;}
+\DoxyCodeLine{00043\ \ \ \_\_float128\ xmm4;}
+\DoxyCodeLine{00044\ \ \ \_\_float128\ xmm5;}
+\DoxyCodeLine{00045\ \ \ \_\_float128\ xmm6;}
+\DoxyCodeLine{00046\ \ \ \_\_float128\ xmm7;}
+\DoxyCodeLine{00047\ \ \ \_\_float128\ xmm8;}
+\DoxyCodeLine{00048\ \ \ \_\_float128\ xmm9;}
+\DoxyCodeLine{00049\ \ \ \_\_float128\ xmm10;}
+\DoxyCodeLine{00050\ \ \ \_\_float128\ xmm11;}
+\DoxyCodeLine{00051\ \ \ \_\_float128\ xmm12;}
+\DoxyCodeLine{00052\ \ \ \_\_float128\ xmm13;}
+\DoxyCodeLine{00053\ \ \ \_\_float128\ xmm14;}
+\DoxyCodeLine{00054\ \ \ \_\_float128\ xmm15;}
+\DoxyCodeLine{00055\ \ \ uint8\_t\ pad4[48];\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ For\ safety.\ \ Manual\ says\ it's\ 512\ bytes\ */}}
+\DoxyCodeLine{00056\ \textcolor{preprocessor}{\ \ \#endif}}
+\DoxyCodeLine{00057\ \};}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \textcolor{comment}{/*\ This\ was\ captured\ from\ a\ live\ FPU.\ \ All\ of\ these\ bits\ are\ probably\ not}}
+\DoxyCodeLine{00060\ \textcolor{comment}{\ *\ necessary,\ but\ that's\ a\ task\ for\ another\ day.}}
+\DoxyCodeLine{00061\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00062\ \textcolor{preprocessor}{\#define\ FPU\_INIT\ ((union\ \{\ \ struct\ fxsave\ fxsave;\ \ uint8\_t\ array[512];\}\ )\ \(\backslash\)}}
+\DoxyCodeLine{00063\ \textcolor{preprocessor}{\ \ \{.array=\{\(\backslash\)}}
+\DoxyCodeLine{00064\ \textcolor{preprocessor}{\ \ \ \ \ 0x7f,0x03,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00065\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00066\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00067\ \textcolor{preprocessor}{\ \ \ \ \ 0x80,0x1f,0x00,0x00,0xff,0xff,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00068\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00069\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00070\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00071\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00072\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00073\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00074\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00075\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00076\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00077\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00078\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00079\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00080\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00081\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00082\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00083\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00084\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00085\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00086\ \textcolor{preprocessor}{\ \ \ \ \ 0x25,0x25,0x25,0x25,0x25,0x25,0x25,0x25,\(\backslash\)}}
+\DoxyCodeLine{00087\ \textcolor{preprocessor}{\ \ \ \ \ 0x25,0x25,0x25,0x25,0x25,0x25,0x25,0x25,\(\backslash\)}}
+\DoxyCodeLine{00088\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00089\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00090\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00091\ \textcolor{preprocessor}{\ \ \ \ \ 0xff,0x00,0x00,0x00,0x00,0xff,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00092\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00093\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00094\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00095\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00096\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00097\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00098\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00099\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00100\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00101\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00102\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00103\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00104\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00105\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00106\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00107\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00108\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00109\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00110\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00111\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00112\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00113\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00114\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00115\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00116\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00117\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00118\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00119\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00120\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00121\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00122\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00123\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00124\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00125\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00126\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,\(\backslash\)}}
+\DoxyCodeLine{00127\ \textcolor{preprocessor}{\ \ \ \ \ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00\}\}).fxsave}}
+\DoxyCodeLine{00128\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00129\ \textcolor{preprocessor}{\ \ \#error\ "{}This\ only\ works\ on\ x86\_64\ for\ now"{}}}
+\DoxyCodeLine{00130\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ }
+\DoxyCodeLine{00133\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

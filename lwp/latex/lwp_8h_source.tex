@@ -1,0 +1,95 @@
+\doxysection{lwp.\+h}
+\hypertarget{lwp_8h_source}{}\label{lwp_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ LWPH}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ LWPH}}
+\DoxyCodeLine{00003\ \textcolor{preprocessor}{\#include\ <sys/types.h>}}
+\DoxyCodeLine{00004\ }
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#ifndef\ TRUE}}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#define\ TRUE\ 1}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#ifndef\ FALSE}}
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#define\ FALSE\ 0}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00011\ }
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#if\ defined(\_\_x86\_64)}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#include\ <fp.h>}}
+\DoxyCodeLine{00015\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\_\_attribute\_\_\ ((aligned(16)))\ \_\_attribute\_\_\ ((packed))}
+\DoxyCodeLine{00016\ registers\ \{}
+\DoxyCodeLine{00017\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ rax;\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ the\ sixteen\ architecturally-\/visible\ regs.\ */}}
+\DoxyCodeLine{00018\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ rbx;}
+\DoxyCodeLine{00019\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ rcx;}
+\DoxyCodeLine{00020\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ rdx;}
+\DoxyCodeLine{00021\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ rsi;}
+\DoxyCodeLine{00022\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ rdi;}
+\DoxyCodeLine{00023\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ rbp;}
+\DoxyCodeLine{00024\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ rsp;}
+\DoxyCodeLine{00025\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ r8;}
+\DoxyCodeLine{00026\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ r9;}
+\DoxyCodeLine{00027\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ r10;}
+\DoxyCodeLine{00028\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ r11;}
+\DoxyCodeLine{00029\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ r12;}
+\DoxyCodeLine{00030\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ r13;}
+\DoxyCodeLine{00031\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ r14;}
+\DoxyCodeLine{00032\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ r15;}
+\DoxyCodeLine{00033\ \ \ \textcolor{keyword}{struct\ }fxsave\ fxsave;\ \ \ \textcolor{comment}{/*\ space\ to\ save\ floating\ point\ state\ */}}
+\DoxyCodeLine{00034\ \}\ rfile;}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\ \ \#error\ "{}This\ only\ works\ on\ x86\_64\ for\ now"{}}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \textcolor{keyword}{typedef}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ tid\_t;}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#define\ NO\_THREAD\ 0\ \ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{/*\ an\ always\ invalid\ thread\ id\ */}\textcolor{preprocessor}{}}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structthreadinfo__st}{threadinfo\_st}}\ *\mbox{\hyperlink{structthreadinfo__st}{thread}};}
+\DoxyCodeLine{00043\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structthreadinfo__st}{threadinfo\_st}}\ \{}
+\DoxyCodeLine{00044\ \ \ tid\_t\ \ \ \ \ \ \ \ \ tid;\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ lightweight\ process\ id\ \ */}}
+\DoxyCodeLine{00045\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ *stack;\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Base\ of\ allocated\ stack\ */}}
+\DoxyCodeLine{00046\ \ \ \textcolor{keywordtype}{size\_t}\ \ \ \ \ \ \ \ stacksize;\ \ \ \ \ \ \textcolor{comment}{/*\ Size\ of\ allocated\ stack\ */}}
+\DoxyCodeLine{00047\ \ \ rfile\ \ \ \ \ \ \ \ \ state;\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ saved\ registers\ \ \ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00048\ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ \ status;\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ exited?\ exit\ status?\ \ \ \ */}}
+\DoxyCodeLine{00049\ \ \ \mbox{\hyperlink{structthreadinfo__st}{thread}}\ \ \ \ \ \ \ \ lib\_one;\ \ \ \ \ \ \ \ \textcolor{comment}{/*\ Two\ pointers\ reserved\ \ \ */}}
+\DoxyCodeLine{00050\ \ \ \mbox{\hyperlink{structthreadinfo__st}{thread}}\ \ \ \ \ \ \ \ lib\_two;\ \ \ \ \ \ \ \ \textcolor{comment}{/*\ for\ use\ by\ the\ library\ \ */}}
+\DoxyCodeLine{00051\ \ \ \mbox{\hyperlink{structthreadinfo__st}{thread}}\ \ \ \ \ \ \ \ sched\_one;\ \ \ \ \ \ \textcolor{comment}{/*\ NEXT\ \ \ \ \ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00052\ \ \ \mbox{\hyperlink{structthreadinfo__st}{thread}}\ \ \ \ \ \ \ \ sched\_two;\ \ \ \ \ \ \textcolor{comment}{/*\ schedulers\ to\ use\ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00053\ \ \ \mbox{\hyperlink{structthreadinfo__st}{thread}}\ \ \ \ \ \ \ \ exited;\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ and\ one\ for\ lwp\_wait()\ \ */}}
+\DoxyCodeLine{00054\ \}\ \mbox{\hyperlink{structthreadinfo__st}{context}};}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \textcolor{keyword}{typedef}\ int\ (*lwpfun)(\textcolor{keywordtype}{void}\ *);\ \ \textcolor{comment}{/*\ type\ for\ lwp\ function\ */}}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00058\ \textcolor{comment}{/*\ Tuple\ that\ describes\ a\ scheduler\ */}}
+\DoxyCodeLine{00059\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structscheduler}{scheduler}}\ \{}
+\DoxyCodeLine{00060\ \ \ void\ \ \ (*init)(void);\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ initialize\ any\ structures\ \ \ \ \ */}}
+\DoxyCodeLine{00061\ \ \ void\ \ \ (*shutdown)(void);\ \ \ \ \ \ \ \ \textcolor{comment}{/*\ tear\ down\ any\ structures\ \ \ \ \ \ */}}
+\DoxyCodeLine{00062\ \ \ void\ \ \ (*admit)(\mbox{\hyperlink{structthreadinfo__st}{thread}}\ \textcolor{keyword}{new});\ \ \ \ \ \textcolor{comment}{/*\ add\ a\ thread\ to\ the\ pool\ \ \ \ \ \ */}}
+\DoxyCodeLine{00063\ \ \ void\ \ \ (*remove)(\mbox{\hyperlink{structthreadinfo__st}{thread}}\ victim);\ \textcolor{comment}{/*\ remove\ a\ thread\ from\ the\ pool\ */}}
+\DoxyCodeLine{00064\ \ \ \mbox{\hyperlink{structthreadinfo__st}{thread}}\ (*next)(void);\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ select\ a\ thread\ to\ schedule\ \ \ */}}
+\DoxyCodeLine{00065\ \ \ int\ \ \ \ (*qlen)(void);\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ number\ of\ ready\ threads\ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00066\ \}\ *\mbox{\hyperlink{structscheduler}{scheduler}};}
+\DoxyCodeLine{00067\ }
+\DoxyCodeLine{00068\ \textcolor{comment}{/*\ lwp\ functions\ */}}
+\DoxyCodeLine{00069\ \textcolor{keyword}{extern}\ tid\_t\ lwp\_create(lwpfun,\textcolor{keywordtype}{void}\ *);}
+\DoxyCodeLine{00070\ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{void}\ \ lwp\_exit(\textcolor{keywordtype}{int}\ status);}
+\DoxyCodeLine{00071\ \textcolor{keyword}{extern}\ tid\_t\ lwp\_gettid(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00072\ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{void}\ \ lwp\_yield(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00073\ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{void}\ \ lwp\_start(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00074\ \textcolor{keyword}{extern}\ tid\_t\ lwp\_wait(\textcolor{keywordtype}{int}\ *);}
+\DoxyCodeLine{00075\ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{void}\ \ lwp\_set\_scheduler(\mbox{\hyperlink{structscheduler}{scheduler}}\ fun);}
+\DoxyCodeLine{00076\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{structscheduler}{scheduler}}\ lwp\_get\_scheduler(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00077\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{structthreadinfo__st}{thread}}\ tid2thread(tid\_t\ tid);}
+\DoxyCodeLine{00078\ }
+\DoxyCodeLine{00079\ \textcolor{comment}{/*\ for\ lwp\_wait\ */}}
+\DoxyCodeLine{00080\ \textcolor{preprocessor}{\#define\ TERMOFFSET\ \ \ \ \ \ \ \ 8}}
+\DoxyCodeLine{00081\ \textcolor{preprocessor}{\#define\ MKTERMSTAT(a,b)\ \ \ (\ (a)<<TERMOFFSET\ |\ ((b)\ \&\ ((1<<TERMOFFSET)-\/1))\ )}}
+\DoxyCodeLine{00082\ \textcolor{preprocessor}{\#define\ LWP\_TERM\ \ \ \ \ \ \ \ \ \ 1}}
+\DoxyCodeLine{00083\ \textcolor{preprocessor}{\#define\ LWP\_LIVE\ \ \ \ \ \ \ \ \ \ 0}}
+\DoxyCodeLine{00084\ \textcolor{preprocessor}{\#define\ LWPTERMINATED(s)\ \ (\ (((s)>>TERMOFFSET)\&LWP\_TERM)\ ==\ LWP\_TERM\ )}}
+\DoxyCodeLine{00085\ \textcolor{preprocessor}{\#define\ LWPTERMSTAT(s)\ \ \ \ (\ (s)\ \&\ ((1<<TERMOFFSET)-\/1)\ )}}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00087\ \textcolor{comment}{/*\ prototypes\ for\ asm\ functions\ */}}
+\DoxyCodeLine{00088\ \textcolor{keywordtype}{void}\ swap\_rfiles(rfile\ *old,\ rfile\ *\textcolor{keyword}{new});}
+\DoxyCodeLine{00089\ }
+\DoxyCodeLine{00090\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}
