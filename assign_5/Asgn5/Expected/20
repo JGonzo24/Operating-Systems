@@ -1,0 +1,20 @@
+/:
+drwxrwxrwx      1280 .
+drwxrwxrwx      1280 ..
+drwxr-xr-x       512 adm
+drwxr-xr-x       512 ast
+drwxr-xr-x     20800 bin
+drwxr-xr-x       384 etc
+drwxr-xr-x       640 gnu
+drwxr-xr-x      3392 include
+drwxr-xr-x      2112 lib
+drwxr-xr-x       704 log
+drwxr-xr-x       896 man
+drwxr-xr-x       384 mdec
+drwx------       128 preserve
+drwxr-xr-x       192 run
+drwxr-xr-x      1088 sbin
+drwxr-xr-x       384 spool
+drwxrwxrwx       128 tmp
+drwxr-xr-x       896 src
+drwxr-xr-x       192 home
