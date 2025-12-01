@@ -554,6 +554,7 @@ ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out) {
 
   int blocks_per_zone = 1 << fs->sb.log_zone_size;
   size_t zone_bytes = fs->sb.blocksize * blocks_per_zone;
+  size_t block_bytes = fs->sb.blocksize;
 
   unsigned char *buffer = malloc(zone_bytes);
   if (!buffer) {
@@ -573,7 +574,7 @@ ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out) {
 
   // 2. Indirect zones
   if (!error && remaining > 0 && inode->indirect != 0) {
-    uint32_t *entries = malloc(zone_bytes);
+    uint32_t *entries = malloc(block_bytes);
     if (!entries) {
       perror("malloc (indirect entries)");
       error = true;
@@ -585,11 +586,11 @@ ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out) {
       } else if (fseeko(fs->img, offset, SEEK_SET) != 0) {
         perror("fseeko (indirect)");
         error = true;
-      } else if (fread(entries, 1, zone_bytes, fs->img) != zone_bytes) {
+      } else if (fread(entries, 1, block_bytes, fs->img) != block_bytes) {
         perror("fread (indirect)");
         error = true;
       } else {
-        int n_entries = zone_bytes / sizeof(uint32_t);
+        int n_entries = block_bytes / sizeof(uint32_t);
         for (int i = 0; i < n_entries && remaining > 0 && !error; i++) {
           process_zone(fs, entries[i], buffer, zone_bytes, &remaining, out,
                        &total_written, &error, &seen_data);
@@ -602,7 +603,7 @@ ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out) {
   // 3. Double indirect zones
   if (!error && remaining > 0 && inode->two_indirect != 0) {
     // L1 table: array of zone numbers (each points to an L2 table)
-    uint32_t *l1 = malloc(zone_bytes);
+    uint32_t *l1 = malloc(block_bytes);
     if (!l1) {
       perror("malloc (two_indirect L1)");
       error = true;
@@ -614,11 +615,11 @@ ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out) {
       } else if (fseeko(fs->img, l1_off, SEEK_SET) != 0) {
         perror("fseeko (two_indirect L1)");
         error = true;
-      } else if (fread(l1, 1, zone_bytes, fs->img) != zone_bytes) {
+      } else if (fread(l1, 1, block_bytes, fs->img) != block_bytes) {
         perror("fread (two_indirect L1)");
         error = true;
       } else {
-        int entries_per_zone = zone_bytes / sizeof(uint32_t);
+        int entries_per_zone = block_bytes / sizeof(uint32_t);
 
         for (int i = 0; i < entries_per_zone && remaining > 0 && !error; i++) {
           uint32_t l1_zone = l1[i];
@@ -634,7 +635,7 @@ ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out) {
           }
 
           // Allocate buffer for L2 table
-          uint32_t *l2 = malloc(zone_bytes);
+          uint32_t *l2 = malloc(block_bytes);
           if (!l2) {
             perror("malloc (two_indirect L2)");
             error = true;
@@ -652,7 +653,7 @@ ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out) {
             error = true;
             free(l2);
             break;
-          } else if (fread(l2, 1, zone_bytes, fs->img) != zone_bytes) {
+          } else if (fread(l2, 1, block_bytes, fs->img) != block_bytes) {
             perror("fread (two_indirect L2)");
             error = true;
             free(l2);
