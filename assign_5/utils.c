@@ -366,7 +366,7 @@ int fs_read_directory(fs_t *fs, inode_t *dir_inode, minix_dir_entry *entries) {
    * ========================= */
   if (!error && remaining > 0 && dir_inode->indirect != 0) {
     size_t zone_bytes = fs_zone_bytes(fs);
-    size_t ptrs = fs_ptrs_per_zone(fs);
+    size_t ptrs = fs_ptrs_per_block(fs);
 
     uint32_t *table = malloc(zone_bytes);
     if (!table) {
@@ -591,9 +591,8 @@ size_t fs_zone_bytes(fs_t *fs) {
 /**
  * @brief Number of 32-bit zone pointers in one zone
  */
-size_t fs_ptrs_per_zone(fs_t *fs) {
-  size_t zone_bytes = fs_zone_bytes(fs);
-  return zone_bytes / sizeof(uint32_t);
+size_t fs_ptrs_per_block(fs_t *fs) {
+  return fs->sb.blocksize / sizeof(uint32_t);
 }
 
 int process_data(fs_t *fs, uint32_t zone, size_t to_write, FILE *out,
@@ -685,7 +684,7 @@ int read_single_indirect(fs_t *fs, inode_t *inode, FILE *out,
   }
 
   size_t zone_bytes = fs_zone_bytes(fs);
-  size_t ptrs = fs_ptrs_per_zone(fs);
+  size_t ptrs = fs_ptrs_per_block(fs);
 
   // ------------------ Holes -----------------//
   if (inode->indirect == 0) {
@@ -703,7 +702,8 @@ int read_single_indirect(fs_t *fs, inode_t *inode, FILE *out,
   }
 
   // ---------- REAL single-indirect zone ------- //
-  size_t table_bytes = ptrs * sizeof(uint32_t);
+  size_t table_bytes = fs->sb.blocksize;
+
   uint32_t *table = malloc(table_bytes);
   if (!table) {
     perror("malloc");
@@ -752,7 +752,7 @@ int read_double_indirect(fs_t *fs, const inode_t *inode, FILE *out,
   }
 
   size_t zone_bytes = fs_zone_bytes(fs);
-  size_t ptrs = fs_ptrs_per_zone(fs);
+  size_t ptrs = fs_ptrs_per_block(fs);
 
   /* --------- No double-indirect zone: entire region is holes --------- */
   if (inode->two_indirect == 0) {
@@ -770,7 +770,7 @@ int read_double_indirect(fs_t *fs, const inode_t *inode, FILE *out,
 
   /* --------- Real double-indirect --------- */
 
-  size_t table_bytes = ptrs * sizeof(uint32_t);
+  size_t table_bytes = fs->sb.blocksize;
 
   uint32_t *outer = malloc(table_bytes);
   if (!outer) {
