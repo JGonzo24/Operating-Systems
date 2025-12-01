@@ -1,5 +1,6 @@
 #define _POSIX_C_SOURCE 200809L /* must be before any #include */
 
+#include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -10,6 +11,9 @@
 
 #include "utils.h"
 
+/**
+ * @brief Deallocates the argument struct
+ */
 void free_args(args_struct_t *args) {
   if (!args)
     return;
@@ -26,6 +30,14 @@ void free_args(args_struct_t *args) {
   free(args);
 }
 
+/**
+ * @brief Allocates an argument struct_var
+ *
+ * Depending on the program being ran, it allocates a new
+ * argument struct and then calls allocate_struct() which
+ * fills the struct with the paramters given to the function.
+ *
+ */
 args_struct_t *Getopts(int argc, char *argv[]) {
   // Check what program is calling Getopts()
   char *prog = argv[0];
@@ -59,7 +71,7 @@ args_struct_t *Getopts(int argc, char *argv[]) {
 }
 
 /**
- * @brief allocate the desired struct
+ * @brief Populates the argument struct
  *
  * This function will insert the arguments from argv[]
  * into the structs depending on what program that is being ran
@@ -171,6 +183,9 @@ int allocate_struct(args_struct_t *args, int argc, char *argv[]) {
   return 0;
 }
 
+/**
+ * @brief Opens the image file
+ */
 FILE *open_img(const char *path) {
   FILE *f = fopen(path, "r");
   if (f == NULL) {
@@ -180,6 +195,9 @@ FILE *open_img(const char *path) {
   return f;
 }
 
+/**
+ * @brief Opens the file system and initializes its members
+ */
 fs_t fs_open(const char *path) {
   fs_t fs;
   fs.img = open_img(path);
@@ -187,6 +205,10 @@ fs_t fs_open(const char *path) {
   return fs;
 }
 
+/*
+ * @brief Uses fseek() and fread() to ensure a valid partition table
+ *
+ */
 int read_partition_table(fs_t *fs, off_t offset,
                          partition_table_entry_t parts[4]) {
   uint8_t sector[512];
@@ -208,6 +230,13 @@ int read_partition_table(fs_t *fs, off_t offset,
   memcpy(parts, sector + 0x1BE, 4 * sizeof(partition_table_entry_t));
   return 0;
 }
+
+/*
+ * @brief Reads the partition type and ensures it is a Minix parition
+ *
+ * Ensures the correct parition type and calculates the index into the
+ * file system to get to the first parition block.
+ */
 
 int select_partition_table(int index, fs_t *fs,
                            partition_table_entry_t parts[4]) {
@@ -231,6 +260,9 @@ int select_partition_table(int index, fs_t *fs,
   return 0;
 }
 
+/*
+ * @brief Reads the super block to ensure correct File System
+ */
 int read_superblock(fs_t *fs) {
   off_t sb_offset = fs->fs_start + 1024;
   if (fseeko(fs->img, sb_offset, SEEK_SET) != 0) {
@@ -252,6 +284,9 @@ int read_superblock(fs_t *fs) {
   return EXIT_SUCCESS;
 }
 
+/*
+ * @brief Reads the inode,
+ */
 int fs_read_inode(fs_t *fs, uint32_t inum, inode_t *out) {
   // Check Inode number
   if (inum < 1 || inum > fs->sb.ninodes) {
@@ -278,6 +313,9 @@ int fs_read_inode(fs_t *fs, uint32_t inum, inode_t *out) {
   return 0;
 }
 
+/*
+ * @brief Calculates the offset based on the desired zone
+ */
 off_t zone_to_offset(fs_t *fs, uint32_t zone) {
   if (zone == 0) {
     return -1;
@@ -288,6 +326,10 @@ off_t zone_to_offset(fs_t *fs, uint32_t zone) {
   return fs->fs_start + block_index * (off_t)fs->sb.blocksize;
 }
 
+/*
+ * @brief
+ *
+ */
 int fs_read_directory(fs_t *fs, inode_t *dir_inode, minix_dir_entry *entries) {
   if (!inode_is_directory(dir_inode)) {
     fprintf(stderr, "fs_read_directory: inode is not a directory\n");
@@ -374,6 +416,9 @@ int fs_read_directory(fs_t *fs, inode_t *dir_inode, minix_dir_entry *entries) {
   return out_count;
 }
 
+/**
+ * @brief Based on the mode, makes a string to be printed
+ */
 void mode_to_string(uint16_t mode, char out[11]) {
   uint16_t type = mode & 0170000;
 
@@ -493,267 +538,12 @@ int fs_lookup_path(fs_t *fs, const char *path, inode_t *out_inode,
   return 0;
 }
 
+/**
+ * @brief Checks Mode type and compares to see if the inode contains a directory
+ */
 int inode_is_directory(inode_t *inode) {
   uint16_t type = inode->mode & 0170000;
   return (type == 0040000);
-}
-
-ssize_t fs_read_file_direct(fs_t *fs, inode_t *inode, FILE *out) {
-  uint32_t remaining = inode->size;
-  int blocks_per_zone = 1 << fs->sb.log_zone_size;
-  size_t zone_bytes = fs->sb.blocksize * blocks_per_zone;
-
-  unsigned char *buf = malloc(zone_bytes);
-  if (!buf) {
-    perror("malloc");
-    return -1;
-  }
-
-  ssize_t total_written = 0;
-
-  for (int i = 0; i < 7 && remaining > 0; i++) {
-    uint32_t z = inode->zone[i];
-    if (z == 0) {
-      break;
-    }
-    off_t offset = zone_to_offset(fs, z);
-    if (offset < 0) {
-      break;
-    }
-
-    if (fseeko(fs->img, offset, SEEK_SET) != 0) {
-      perror("fseeko");
-      break;
-    }
-
-    size_t to_read = remaining < zone_bytes ? remaining : zone_bytes;
-
-    if (fread(buf, 1, to_read, fs->img) != to_read) {
-      perror("fread");
-      break;
-    }
-
-    if (fwrite(buf, 1, to_read, out) != to_read) {
-      perror("fwrite");
-      break;
-    }
-
-    remaining -= to_read;
-    total_written += to_read;
-  }
-  free(buf);
-  return total_written;
-}
-
-ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out) {
-  uint32_t remaining = inode->size;
-  bool seen_data = false;
-  bool error = false;
-  if (remaining == 0) {
-    return 0;
-  }
-
-  int blocks_per_zone = 1 << fs->sb.log_zone_size;
-  size_t zone_bytes = fs->sb.blocksize * blocks_per_zone;
-  size_t block_bytes = fs->sb.blocksize;
-
-  unsigned char *buffer = malloc(zone_bytes);
-  if (!buffer) {
-    perror("malloc");
-    error = true;
-    return -1;
-  }
-
-  ssize_t total_written = 0;
-
-  // 1. Direct zones
-  for (int i = 0; i < 7 && remaining > 0 && !error; i++) {
-    uint32_t zone = inode->zone[i];
-    process_zone(fs, zone, buffer, zone_bytes, &remaining, out, &total_written,
-                 &error, &seen_data);
-  }
-  fprintf(stderr, "After direct zones: remaining = %u\n", remaining);
-
-  // 2. Indirect zones
-  if (!error && remaining > 0) {
-      if (inode->indirect == 0) {
-          // The entire indirect section is a hole - process as holes
-          int entries_per_block = block_bytes / sizeof(uint32_t);
-          for (int i = 0; i < entries_per_block && remaining > 0 && !error; i++) {
-              process_zone(fs, 0, buffer, zone_bytes, &remaining, out,
-                          &total_written, &error, &seen_data);
-          }
-      } else {
-          // Read and process the indirect block normally
-          uint32_t *entries = malloc(block_bytes);
-          if (!entries) {
-              perror("malloc (indirect entries)");
-              error = true;
-          } else {
-              off_t offset = zone_to_offset(fs, inode->indirect);
-              if (offset < 0) {
-                  fprintf(stderr, "Invalid indirect zone %u\n", inode->indirect);
-                  error = true;
-              } else if (fseeko(fs->img, offset, SEEK_SET) != 0) {
-                  perror("fseeko (indirect)");
-                  error = true;
-              } else if (fread(entries, 1, block_bytes, fs->img) != block_bytes) {
-                  perror("fread (indirect)");
-                  error = true;
-              } else {
-                  int n_entries = block_bytes / sizeof(uint32_t);
-                  for (int i = 0; i < n_entries && remaining > 0 && !error; i++) {
-                      process_zone(fs, entries[i], buffer, zone_bytes, &remaining, out,
-                                  &total_written, &error, &seen_data);
-                  }
-              }
-              free(entries);
-          }
-      }
-  }
-
-  fprintf(stderr, "After indirect: remaining = %u\n", remaining);
-
-  // 3. Double indirect zones
-  if (!error && remaining > 0 && inode->two_indirect != 0) {
-    // L1 table: array of zone numbers (each points to an L2 table)
-    uint32_t *l1 = malloc(block_bytes);
-    if (!l1) {
-      perror("malloc (two_indirect L1)");
-      error = true;
-    } else {
-      off_t l1_off = zone_to_offset(fs, inode->two_indirect);
-      if (l1_off < 0) {
-        fprintf(stderr, "Invalid two_indirect zone %u\n", inode->two_indirect);
-        error = true;
-      } else if (fseeko(fs->img, l1_off, SEEK_SET) != 0) {
-        perror("fseeko (two_indirect L1)");
-        error = true;
-      } else if (fread(l1, 1, block_bytes, fs->img) != block_bytes) {
-        perror("fread (two_indirect L1)");
-        error = true;
-      } else {
-        int entries_per_zone = block_bytes / sizeof(uint32_t);
-
-        for (int i = 0; i < entries_per_zone && remaining > 0 && !error; i++) {
-          uint32_t l1_zone = l1[i];
-
-          if (l1_zone == 0) {
-            // This entire L2 chunk is holes: simulate entries_per_zone
-            for (int j = 0; j < entries_per_zone && remaining > 0 && !error;
-                 j++) {
-              process_zone(fs, 0, buffer, zone_bytes, &remaining, out,
-                           &total_written, &error, &seen_data);
-            }
-            continue;
-          }
-          // Allocate buffer for L2 table
-          uint32_t *l2 = malloc(block_bytes);
-          if (!l2) {
-            perror("malloc (two_indirect L2)");
-            error = true;
-            break;
-          }
-
-          off_t l2_off = zone_to_offset(fs, l1_zone);
-          if (l2_off < 0) {
-            fprintf(stderr, "Invalid L2 zone %u in two_indirect\n", l1_zone);
-            error = true;
-            free(l2);
-            break;
-          } else if (fseeko(fs->img, l2_off, SEEK_SET) != 0) {
-            perror("fseeko (two_indirect L2)");
-            error = true;
-            free(l2);
-            break;
-          } else if (fread(l2, 1, block_bytes, fs->img) != block_bytes) {
-            perror("fread (two_indirect L2)");
-            error = true;
-            free(l2);
-            break;
-          } else {
-            // Now l2[j] are data zone numbers
-            for (int j = 0; j < entries_per_zone && remaining > 0 && !error;
-                 j++) {
-              process_zone(fs, l2[j], buffer, zone_bytes, &remaining, out,
-                           &total_written, &error, &seen_data);
-            }
-          }
-          free(l2);
-        } // end L1 loop
-        fprintf(stderr, "After double-indirect: remaining = %u\n", remaining);
-      } // end L1 read ok
-      free(l1);
-    } // end l1 malloc ok
-  }
-
-  free(buffer);
-  return error ? -1 : total_written;
-}
-
-void process_zone(fs_t *fs, uint32_t zone, unsigned char *buf,
-                  size_t zone_bytes, uint32_t *remaining, FILE *out,
-                  ssize_t *total_written, bool *error, bool *seen_data) {
-  if (*error || *remaining == 0)
-    return;
-
-  size_t to_write = (*remaining < zone_bytes) ? *remaining : zone_bytes;
-
-  if (zone == 0) {
-    // Hole
-    if (!*seen_data) {
-      // Leading hole: skip without writing
-      *remaining -= to_write;
-      return;
-    }
-    // Hole after data: write zeros
-    memset(buf, 0, to_write);
-    
-    if (fwrite(buf, 1, to_write, out) != to_write) {
-      perror("fwrite");
-      *error = true;
-      return;
-    }
-    *remaining -= to_write;
-    *total_written += to_write;
-  } else {
-    // Real data
-    off_t offset = zone_to_offset(fs, zone);
-    if (offset < 0) {
-      fprintf(stderr, "Invalid zone %u\n", zone);
-      *error = true;
-      return;
-    }
-
-    if (fseeko(fs->img, offset, SEEK_SET) != 0) {
-      perror("fseeko");
-      *error = true;
-      return;
-    }
-
-    if (fread(buf, 1, to_write, fs->img) != to_write) {
-      perror("fread");
-      *error = true;
-      return;
-    }
-    
-    if (fwrite(buf, 1, to_write, out) != to_write) {
-      perror("fwrite");
-      *error = true;
-      return;
-    }
-    
-    *seen_data = true;
-    *remaining -= to_write;
-    *total_written += to_write;
-  }
-  static int call_count = 0;
-  if (call_count < 20 || zone != 0) {  // Print first 20 calls or any non-hole
-      fprintf(stderr, "process_zone #%d: zone=%u, remaining=%u, seen_data=%d\n", 
-              call_count++, zone, *remaining, *seen_data);
-  } else {
-      call_count++;
-  }
 }
 
 void dir_process_zone(fs_t *fs, uint32_t zone, unsigned char *raw,
@@ -787,7 +577,307 @@ void dir_process_zone(fs_t *fs, uint32_t zone, unsigned char *raw,
       return;
     }
   }
-
   *buf_pos += to_copy;
   *remaining -= to_copy;
+}
+
+/**
+ * @brief returns the amount of bytes in a zone
+ */
+size_t fs_zone_bytes(fs_t *fs) {
+  return (size_t)fs->sb.blocksize << fs->sb.log_zone_size;
+}
+
+/**
+ * @brief The table of zone pointers is blocksize bytes long
+ */
+size_t fs_ptrs_per_zone(fs_t *fs) {
+  return (size_t)fs->sb.blocksize / sizeof(uint32_t);
+}
+
+int process_data(fs_t *fs, uint32_t zone, size_t to_write, FILE *out,
+                 file_read_state_t *state) {
+  if (state->remaining == 0 || to_write == 0) {
+    fprintf(stderr, "No more remaining or no to_write!\n");
+    return 0;
+  }
+
+  if (to_write > state->remaining) {
+    to_write = state->remaining;
+  }
+
+  size_t buf_size = fs->sb.blocksize;
+  unsigned char *buf[buf_size];
+
+  // ------------------ I/O Portion -------------------//
+  while (to_write > 0) {
+    size_t chunk = (to_write < buf_size) ? to_write : buf_size;
+    // Write zeros if holes
+    if (zone == 0) {
+      memset(buf, 0, chunk);
+    }
+    // Real zone
+    else {
+      if (fread(buf, 1, chunk, fs->img) != chunk) {
+        perror("fread");
+        return -1;
+      }
+    }
+
+    // Write either zeros or actual data to out
+    if (fwrite(buf, 1, chunk, out) != chunk) {
+      perror("fwrite");
+      return -1;
+    }
+
+    to_write -= chunk;
+    state->remaining -= chunk;
+    state->total_written += chunk;
+  }
+  return 0;
+}
+
+/**
+ * @brief Gets the zone from the inode, processes its data
+ *
+ *
+ *
+ */
+int read_direct_zones(fs_t *fs, inode_t *inode, FILE *out,
+                      file_read_state_t *state) {
+  size_t zone_bytes = fs_zone_bytes(fs);
+
+  // for every zone, process the zone's data from the inode
+  for (int i = 0; i < DIRECT_ZONES && state->remaining > 0; i++) {
+    uint32_t z = inode->zone[i];
+    size_t to_write =
+        (state->remaining < zone_bytes) ? state->remaining : zone_bytes;
+
+    if (process_data(fs, z, to_write, out, state) < 0) {
+      fprintf(stderr, "Error in process_data (read_direct_zones)\n");
+      return -1;
+    }
+  }
+  return 0;
+}
+
+int read_single_indirect(fs_t *fs, inode_t *inode, FILE *out,
+                         file_read_state_t *state) {
+  if (state->remaining == 0) {
+    return 0; // Nothing to read!
+  }
+
+  size_t zone_bytes = fs_zone_bytes(fs);
+  size_t ptrs = fs_ptrs_per_zone(fs);
+
+  // ------------------ Holes -----------------//
+  if (inode->indirect == 0) {
+    for (size_t i = 0; i < ptrs && state->remaining > 0; i++) {
+      size_t to_write =
+          (state->remaining < zone_bytes) ? state->remaining : zone_bytes;
+
+      // Process this data
+      if (process_data(fs, 0, to_write, out, state) < 0) {
+        fprintf(stderr, "Error: Process_data (read_single_indirect)\n");
+        return -1;
+      }
+    }
+    return 0;
+  }
+
+  // ---------- REAL single-indirect zone ------- //
+  size_t table_bytes = ptrs * sizeof(uint32_t);
+  uint32_t *table = malloc(table_bytes);
+  if (!table) {
+    perror("malloc");
+    return -1;
+  }
+
+  off_t offset = zone_to_offset(fs, inode->indirect);
+
+  if (offset < 0) {
+    fprintf(stderr, "Invalid indirect zone %u\n", inode->indirect);
+    free(table);
+    return -1;
+  }
+
+  // Now read from the image to save it into the table
+  if (fseeko(fs->img, offset, SEEK_SET) != 0) {
+    perror("fseeko (single-indirect)");
+    free(table);
+    return -1;
+  }
+
+  if (fread(table, 1, table_bytes, fs->img) != table_bytes) {
+    perror("fread (single-indirect)");
+    free(table);
+    return -1;
+  }
+  
+  // Now iterate through the pointers in the table and write to the outfile
+  for (size_t i = 0; i < ptrs && state->remaining > 0; i++)
+  {
+    uint32_t zone = table[i];
+    size_t to_write =
+       (state->remaining < zone_bytes) ? state->remaining : zone_bytes; 
+    if (process_data(fs, zone, to_write, out, state) < 0)
+    {
+      free(table);
+      return -1;
+    }
+  }
+  free(table);
+  return 0;
+}
+
+
+int read_double_indirect(fs_t *fs,
+                                const inode_t *inode,
+                                FILE *out,
+                                file_read_state_t *state)
+{
+  if (state->remaining == 0) {
+    return 0;
+  }
+
+  size_t zone_bytes = fs_zone_bytes(fs);
+  size_t ptrs       = fs_ptrs_per_zone(fs);
+
+  /* --------- No double-indirect zone: entire region is holes --------- */
+  if (inode->two_indirect == 0) {
+    for (size_t i = 0; i < ptrs && state->remaining > 0; i++) {
+      for (size_t j = 0; j < ptrs && state->remaining > 0; j++) {
+        size_t to_write =
+            (state->remaining < zone_bytes) ? state->remaining : zone_bytes;
+        if (process_data(fs, 0, to_write, out, state) < 0) {
+          return -1;
+        }
+      }
+    }
+    return 0;
+  }
+
+  /* --------- Real double-indirect --------- */
+
+  size_t table_bytes = ptrs * sizeof(uint32_t);
+
+  uint32_t *outer = malloc(table_bytes);
+  if (!outer) {
+    perror("malloc (double-indirect outer)");
+    return -1;
+  }
+
+  off_t off = zone_to_offset(fs, inode->two_indirect);
+  if (off < 0) {
+    fprintf(stderr, "Invalid double-indirect zone %u\n", inode->two_indirect);
+    free(outer);
+    return -1;
+  }
+
+  if (fseeko(fs->img, off, SEEK_SET) != 0) {
+    perror("fseeko (double-indirect outer)");
+    free(outer);
+    return -1;
+  }
+
+  if (fread(outer, 1, table_bytes, fs->img) != table_bytes) {
+    perror("fread (double-indirect outer)");
+    free(outer);
+    return -1;
+  }
+
+  uint32_t *inner = malloc(table_bytes);
+  if (!inner) {
+    perror("malloc (double-indirect inner)");
+    free(outer);
+    return -1;
+  }
+
+  for (size_t i = 0; i < ptrs && state->remaining > 0; i++) {
+    uint32_t first_level_zone = outer[i];
+
+    if (first_level_zone == 0) {
+      /* This whole chunk (ptrs data zones) is holes. */
+      for (size_t j = 0; j < ptrs && state->remaining > 0; j++) {
+        size_t to_write =
+            (state->remaining < zone_bytes) ? state->remaining : zone_bytes;
+        if (process_data(fs, 0, to_write, out, state) < 0) {
+          free(inner);
+          free(outer);
+          return -1;
+        }
+      }
+      continue;
+    }
+
+    off_t off2 = zone_to_offset(fs, first_level_zone);
+    if (off2 < 0) {
+      fprintf(stderr, "Invalid 2nd-level indirect zone %u\n",
+              first_level_zone);
+      free(inner);
+      free(outer);
+      return -1;
+    }
+
+    if (fseeko(fs->img, off2, SEEK_SET) != 0) {
+      perror("fseeko (double-indirect inner)");
+      free(inner);
+      free(outer);
+      return -1;
+    }
+
+    if (fread(inner, 1, table_bytes, fs->img) != table_bytes) {
+      perror("fread (double-indirect inner)");
+      free(inner);
+      free(outer);
+      return -1;
+    }
+
+    for (size_t j = 0; j < ptrs && state->remaining > 0; j++) {
+      uint32_t data_zone = inner[j];
+      size_t to_write =
+          (state->remaining < zone_bytes) ? state->remaining : zone_bytes;
+      if (process_data(fs, data_zone, to_write, out, state) < 0) {
+        free(inner);
+        free(outer);
+        return -1;
+      }
+    }
+  }
+
+  free(inner);
+  free(outer);
+  return 0;
+}
+
+ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out)
+{
+  file_read_state_t st = {
+    .remaining     = inode->size,
+    .total_written = 0,
+  };
+
+  if (st.remaining == 0) {
+    return 0;
+  }
+
+  if (read_direct_zones(fs, inode, out, &st) < 0) {
+    return -1;
+  }
+  if (st.remaining == 0) {
+    return (ssize_t)st.total_written;
+  }
+
+  if (read_single_indirect(fs, inode, out, &st) < 0) {
+    return -1;
+  }
+  if (st.remaining == 0) {
+    return (ssize_t)st.total_written;
+  }
+
+  if (read_double_indirect(fs, inode, out, &st) < 0) {
+    return -1;
+  }
+
+  return (ssize_t)st.total_written;
 }

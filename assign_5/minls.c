@@ -73,8 +73,8 @@ int main(int argc, char *argv[])
     }
     else 
     {
-	if (path[0] == '/') printf("%s:\n", path);
-        else printf("/%s:\n", path);
+      if (path[0] == '/') printf("%s:\n", path);
+      else printf("/%s:\n", path);
     }
 
     int max = target.size / DIR_ENTRY_SIZE;

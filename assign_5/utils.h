@@ -103,23 +103,14 @@ typedef struct minix_dir_entry {
   unsigned char name[60];
 } minix_dir_entry;
 
+typedef struct {
+  uint32_t remaining;
+  size_t total_written;
+} file_read_state_t;
 
-void process_zone(fs_t *fs,
-                         uint32_t zone,
-                         unsigned char *buf,
-                         size_t zone_bytes,
-                         uint32_t *remaining,
-                         FILE *out,
-                         ssize_t *total_written,
-                         bool *error, bool *seen_data);
-
-void dir_process_zone(fs_t *fs,
-                             uint32_t zone,
-                             unsigned char *raw,
-                             size_t zone_bytes,
-                             uint32_t *remaining,
-                             size_t *buf_pos,
-                             bool *error);
+void dir_process_zone(fs_t *fs, uint32_t zone, unsigned char *raw,
+                      size_t zone_bytes, uint32_t *remaining, size_t *buf_pos,
+                      bool *error);
 
 ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out);
 int fs_lookup_path(fs_t *fs, const char *path,
@@ -140,6 +131,11 @@ int read_partition_table(fs_t* fs, off_t offset,
 			partition_table_entry_t parts[4]);
 int select_partition_table(int index, fs_t* fs,
 			 partition_table_entry_t parts[4]);
+
+size_t fs_zone_bytes(fs_t *fs);
+
+size_t fs_ptrs_per_zone(fs_t *fs);
+
 
 
 
