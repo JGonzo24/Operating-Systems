@@ -66,6 +66,22 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Path not found: %s\n", m->srcpath);
         exit(EXIT_FAILURE);
     }
+    // ADD THIS:
+    fprintf(stderr, "Raw inode bytes for size field:\n");
+    unsigned char *size_bytes = (unsigned char *)&file_inode.size;
+    for (int i = 0; i < 4; i++) {
+        fprintf(stderr, "  byte[%d] = 0x%02x\n", i, size_bytes[i]);
+    }
+    fprintf(stderr, "Interpreted as uint32_t: %u (0x%x)\n", file_inode.size, file_inode.size);
+
+    // In minget.c, after fs_lookup_path, add this:
+    fprintf(stderr, "DEBUG: file size = %u (0x%x)\n", file_inode.size, file_inode.size);
+    fprintf(stderr, "DEBUG: direct zones: ");
+    for (int i = 0; i < 7; i++) {
+        fprintf(stderr, "%u ", file_inode.zone[i]);
+    }
+    fprintf(stderr, "\nDEBUG: indirect = %u, two_indirect = %u\n", 
+            file_inode.indirect, file_inode.two_indirect);
 
     if (inode_is_directory(&file_inode))
     {
