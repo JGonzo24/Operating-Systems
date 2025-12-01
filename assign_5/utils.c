@@ -546,6 +546,7 @@ ssize_t fs_read_file_direct(fs_t *fs, inode_t *inode, FILE *out) {
 
 ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out) {
   uint32_t remaining = inode->size;
+  bool seen_data = false;
   bool error = false;
   if (remaining == 0) {
     return 0;
@@ -567,7 +568,7 @@ ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out) {
   for (int i = 0; i < 7 && remaining > 0 && !error; i++) {
     uint32_t zone = inode->zone[i];
     process_zone(fs, zone, buffer, zone_bytes, &remaining, out, &total_written,
-                 &error);
+                 &error, &seen_data);
   }
 
   // 2. Indirect zones
@@ -591,7 +592,7 @@ ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out) {
         int n_entries = zone_bytes / sizeof(uint32_t);
         for (int i = 0; i < n_entries && remaining > 0 && !error; i++) {
           process_zone(fs, entries[i], buffer, zone_bytes, &remaining, out,
-                       &total_written, &error);
+                       &total_written, &error, &seen_data);
         }
       }
       free(entries);
@@ -627,7 +628,7 @@ ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out) {
             for (int j = 0; j < entries_per_zone && remaining > 0 && !error;
                  j++) {
               process_zone(fs, 0, buffer, zone_bytes, &remaining, out,
-                           &total_written, &error);
+                           &total_written, &error, &seen_data);
             }
             continue;
           }
@@ -661,7 +662,7 @@ ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out) {
             for (int j = 0; j < entries_per_zone && remaining > 0 && !error;
                  j++) {
               process_zone(fs, l2[j], buffer, zone_bytes, &remaining, out,
-                           &total_written, &error);
+                           &total_written, &error, &seen_data);
             }
           }
           free(l2);
@@ -677,7 +678,7 @@ ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out) {
 
 void process_zone(fs_t *fs, uint32_t zone, unsigned char *buf,
                   size_t zone_bytes, uint32_t *remaining, FILE *out,
-                  ssize_t *total_written, bool *error) {
+                  ssize_t *total_written, bool *error, bool *seen_data) {
   if (*error || *remaining == 0)
     return;
 
@@ -685,6 +686,7 @@ void process_zone(fs_t *fs, uint32_t zone, unsigned char *buf,
 
   if (zone == 0) {
     // Hole: write zeros
+    if (!*seen_data) return;
     memset(buf, 0, to_write);
   } else {
     off_t offset = zone_to_offset(fs, zone);
@@ -705,6 +707,7 @@ void process_zone(fs_t *fs, uint32_t zone, unsigned char *buf,
       *error = true;
       return;
     }
+    *seen_data = true;
   }
 
   if (fwrite(buf, 1, to_write, out) != to_write) {

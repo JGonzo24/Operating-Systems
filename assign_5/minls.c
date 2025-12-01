@@ -65,8 +65,17 @@ int main(int argc, char *argv[])
   }
 
   if (inode_is_directory(&target))
-  {
-    printf("%s:\n", minls_struct->path);
+  { 
+    const char *path = minls_struct->path;
+    if (!path || path[0] == '\0')
+    {
+	printf("/:\n");
+    }
+    else 
+    {
+	if (path[0] == '/') printf("%s:\n", path);
+        else printf("/%s:\n", path);
+    }
 
     int max = target.size / DIR_ENTRY_SIZE;
     minix_dir_entry *entries = malloc(max * sizeof(*entries));

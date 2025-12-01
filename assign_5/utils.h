@@ -111,7 +111,7 @@ void process_zone(fs_t *fs,
                          uint32_t *remaining,
                          FILE *out,
                          ssize_t *total_written,
-                         bool *error);
+                         bool *error, bool *seen_data);
 
 void dir_process_zone(fs_t *fs,
                              uint32_t zone,
