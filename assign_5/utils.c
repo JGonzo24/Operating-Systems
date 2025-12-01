@@ -686,10 +686,24 @@ void process_zone(fs_t *fs, uint32_t zone, unsigned char *buf,
   size_t to_write = (*remaining < zone_bytes) ? *remaining : zone_bytes;
 
   if (zone == 0) {
-    // Hole: write zeros
-    if (!*seen_data) return;
+    // Hole
+    if (!*seen_data) {
+      // Leading hole: skip without writing
+      *remaining -= to_write;
+      return;
+    }
+    // Hole after data: write zeros
     memset(buf, 0, to_write);
+    
+    if (fwrite(buf, 1, to_write, out) != to_write) {
+      perror("fwrite");
+      *error = true;
+      return;
+    }
+    *remaining -= to_write;
+    *total_written += to_write;
   } else {
+    // Real data
     off_t offset = zone_to_offset(fs, zone);
     if (offset < 0) {
       fprintf(stderr, "Invalid zone %u\n", zone);
@@ -708,17 +722,17 @@ void process_zone(fs_t *fs, uint32_t zone, unsigned char *buf,
       *error = true;
       return;
     }
+    
+    if (fwrite(buf, 1, to_write, out) != to_write) {
+      perror("fwrite");
+      *error = true;
+      return;
+    }
+    
     *seen_data = true;
+    *remaining -= to_write;
+    *total_written += to_write;
   }
-
-  if (fwrite(buf, 1, to_write, out) != to_write) {
-    perror("fwrite");
-    *error = true;
-    return;
-  }
-
-  *remaining -= to_write;
-  *total_written += to_write;
 }
 
 void dir_process_zone(fs_t *fs, uint32_t zone, unsigned char *raw,
