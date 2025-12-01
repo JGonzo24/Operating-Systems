@@ -1,8 +1,8 @@
 #define _POSIX_C_SOURCE 200809L /* must be before any #include */
 
-#include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -336,8 +336,6 @@ int fs_read_directory(fs_t *fs, inode_t *dir_inode, minix_dir_entry *entries) {
     return -1;
   }
 
-  size_t block_bytes = fs->sb.blocksize;
-
   uint32_t remaining = dir_inode->size;
   if (remaining == 0) {
     return 0;
@@ -367,7 +365,10 @@ int fs_read_directory(fs_t *fs, inode_t *dir_inode, minix_dir_entry *entries) {
    * 2. INDIRECT ZONE (dir_inode->indirect)
    * ========================= */
   if (!error && remaining > 0 && dir_inode->indirect != 0) {
-    uint32_t *table = malloc(block_bytes);
+    size_t zone_bytes = fs_zone_bytes(fs);
+    size_t ptrs = fs_ptrs_per_zone(fs);
+
+    uint32_t *table = malloc(zone_bytes);
     if (!table) {
       perror("malloc (dir indirect table)");
       error = true;
@@ -379,12 +380,11 @@ int fs_read_directory(fs_t *fs, inode_t *dir_inode, minix_dir_entry *entries) {
       } else if (fseeko(fs->img, off, SEEK_SET) != 0) {
         perror("fseeko (dir indirect)");
         error = true;
-      } else if (fread(table, 1, block_bytes, fs->img) != block_bytes) {
+      } else if (fread(table, 1, zone_bytes, fs->img) != zone_bytes) {
         perror("fread (dir indirect)");
         error = true;
       } else {
-        int n_entries = block_bytes / sizeof(uint32_t);
-        for (int i = 0; i < n_entries && remaining > 0 && !error; i++) {
+        for (size_t i = 0; i < ptrs && remaining > 0 && !error; i++) {
           uint32_t z = table[i];
           dir_process_zone(fs, z, raw, zone_bytes, &remaining, &buf_pos,
                            &error);
@@ -596,10 +596,8 @@ size_t fs_ptrs_per_zone(fs_t *fs) {
   return zone_bytes / sizeof(uint32_t);
 }
 
-
 int process_data(fs_t *fs, uint32_t zone, size_t to_write, FILE *out,
-                 file_read_state_t *state)
-{
+                 file_read_state_t *state) {
   /* Nothing to do */
   if (state->remaining == 0 || to_write == 0) {
     return 0;
@@ -648,8 +646,8 @@ int process_data(fs_t *fs, uint32_t zone, size_t to_write, FILE *out,
       return -1;
     }
 
-    to_write             -= chunk;
-    state->remaining     -= chunk;
+    to_write -= chunk;
+    state->remaining -= chunk;
     state->total_written += chunk;
   }
 
@@ -732,15 +730,13 @@ int read_single_indirect(fs_t *fs, inode_t *inode, FILE *out,
     free(table);
     return -1;
   }
-  
+
   // Now iterate through the pointers in the table and write to the outfile
-  for (size_t i = 0; i < ptrs && state->remaining > 0; i++)
-  {
+  for (size_t i = 0; i < ptrs && state->remaining > 0; i++) {
     uint32_t zone = table[i];
     size_t to_write =
-       (state->remaining < zone_bytes) ? state->remaining : zone_bytes; 
-    if (process_data(fs, zone, to_write, out, state) < 0)
-    {
+        (state->remaining < zone_bytes) ? state->remaining : zone_bytes;
+    if (process_data(fs, zone, to_write, out, state) < 0) {
       free(table);
       return -1;
     }
@@ -749,18 +745,14 @@ int read_single_indirect(fs_t *fs, inode_t *inode, FILE *out,
   return 0;
 }
 
-
-int read_double_indirect(fs_t *fs,
-                                const inode_t *inode,
-                                FILE *out,
-                                file_read_state_t *state)
-{
+int read_double_indirect(fs_t *fs, const inode_t *inode, FILE *out,
+                         file_read_state_t *state) {
   if (state->remaining == 0) {
     return 0;
   }
 
   size_t zone_bytes = fs_zone_bytes(fs);
-  size_t ptrs       = fs_ptrs_per_zone(fs);
+  size_t ptrs = fs_ptrs_per_zone(fs);
 
   /* --------- No double-indirect zone: entire region is holes --------- */
   if (inode->two_indirect == 0) {
@@ -831,8 +823,7 @@ int read_double_indirect(fs_t *fs,
 
     off_t off2 = zone_to_offset(fs, first_level_zone);
     if (off2 < 0) {
-      fprintf(stderr, "Invalid 2nd-level indirect zone %u\n",
-              first_level_zone);
+      fprintf(stderr, "Invalid 2nd-level indirect zone %u\n", first_level_zone);
       free(inner);
       free(outer);
       return -1;
@@ -869,11 +860,10 @@ int read_double_indirect(fs_t *fs,
   return 0;
 }
 
-ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out)
-{
+ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out) {
   file_read_state_t st = {
-    .remaining     = inode->size,
-    .total_written = 0,
+      .remaining = inode->size,
+      .total_written = 0,
   };
 
   if (st.remaining == 0) {
@@ -899,4 +889,9 @@ ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out)
   }
 
   return (ssize_t)st.total_written;
+}
+
+int inode_is_regular(inode_t *inode) {
+  uint16_t type = inode->mode & 0170000;
+  return (type == 0100000); // regular file
 }

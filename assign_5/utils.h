@@ -136,9 +136,7 @@ size_t fs_zone_bytes(fs_t *fs);
 
 size_t fs_ptrs_per_zone(fs_t *fs);
 
-
-
-
+int inode_is_regular(inode_t *inode);
 
 
 #endif
