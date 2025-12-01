@@ -113,6 +113,14 @@ void process_zone(fs_t *fs,
                          ssize_t *total_written,
                          bool *error);
 
+void dir_process_zone(fs_t *fs,
+                             uint32_t zone,
+                             unsigned char *raw,
+                             size_t zone_bytes,
+                             uint32_t *remaining,
+                             size_t *buf_pos,
+                             bool *error);
+
 ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out);
 int fs_lookup_path(fs_t *fs, const char *path,
                    inode_t *out_inode, uint32_t *out_inum);

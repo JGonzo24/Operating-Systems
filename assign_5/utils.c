@@ -1,12 +1,12 @@
-#define _POSIX_C_SOURCE 200809L    /* must be before any #include */
+#define _POSIX_C_SOURCE 200809L /* must be before any #include */
 
-#include <unistd.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include "utils.h"
 
@@ -289,30 +289,75 @@ off_t zone_to_offset(fs_t *fs, uint32_t zone) {
 }
 
 int fs_read_directory(fs_t *fs, inode_t *dir_inode, minix_dir_entry *entries) {
-  off_t off = zone_to_offset(fs, dir_inode->zone[0]);
-  if (off < 0) {
-    fprintf(stderr, "Zone is 0!\n");
+  if (!inode_is_directory(dir_inode)) {
+    fprintf(stderr, "fs_read_directory: inode is not a directory\n");
     return -1;
   }
 
-  if (fseeko(fs->img, off, SEEK_SET) != 0) {
-    perror("fseeko");
-    return -1;
+  uint32_t remaining = dir_inode->size;
+  if (remaining == 0) {
+    return 0;
   }
-  size_t dir_size = dir_inode->size;
-  unsigned char *raw = malloc(dir_size);
+
+  int blocks_per_zone = 1 << fs->sb.log_zone_size;
+  size_t zone_bytes = fs->sb.blocksize * blocks_per_zone;
+
+  unsigned char *raw = malloc(remaining);
   if (!raw) {
-    perror("malloc");
+    perror("malloc (directory raw)");
     return -1;
   }
 
-  if (fread(raw, 1, dir_size, fs->img) != dir_size) {
-    perror("fread");
+  size_t buf_pos = 0;
+  bool error = false;
+
+  /* =========================
+   * 1. DIRECT ZONES (zone[0..6])
+   * ========================= */
+  for (int i = 0; i < 7 && remaining > 0 && !error; i++) {
+    uint32_t z = dir_inode->zone[i];
+    dir_process_zone(fs, z, raw, zone_bytes, &remaining, &buf_pos, &error);
+  }
+
+  /* =========================
+   * 2. INDIRECT ZONE (dir_inode->indirect)
+   * ========================= */
+  if (!error && remaining > 0 && dir_inode->indirect != 0) {
+    uint32_t *table = malloc(zone_bytes);
+    if (!table) {
+      perror("malloc (dir indirect table)");
+      error = true;
+    } else {
+      off_t off = zone_to_offset(fs, dir_inode->indirect);
+      if (off < 0) {
+        fprintf(stderr, "Invalid dir indirect zone %u\n", dir_inode->indirect);
+        error = true;
+      } else if (fseeko(fs->img, off, SEEK_SET) != 0) {
+        perror("fseeko (dir indirect)");
+        error = true;
+      } else if (fread(table, 1, zone_bytes, fs->img) != zone_bytes) {
+        perror("fread (dir indirect)");
+        error = true;
+      } else {
+        int n_entries = zone_bytes / sizeof(uint32_t);
+        for (int i = 0; i < n_entries && remaining > 0 && !error; i++) {
+          uint32_t z = table[i];
+          dir_process_zone(fs, z, raw, zone_bytes, &remaining, &buf_pos,
+                           &error);
+        }
+      }
+
+      free(table);
+    }
+  }
+
+  if (error) {
     free(raw);
     return -1;
   }
 
-  int n_entries = dir_size / DIR_ENTRY_SIZE;
+  /* ===== Parse raw bytes into directory entries ===== */
+  int n_entries = dir_inode->size / DIR_ENTRY_SIZE;
   int out_count = 0;
 
   for (int i = 0; i < n_entries; i++) {
@@ -323,6 +368,7 @@ int fs_read_directory(fs_t *fs, inode_t *dir_inode, minix_dir_entry *entries) {
 
     entries[out_count++] = *de;
   }
+
   free(raw);
   return out_count;
 }
@@ -669,4 +715,40 @@ void process_zone(fs_t *fs, uint32_t zone, unsigned char *buf,
 
   *remaining -= to_write;
   *total_written += to_write;
+}
+
+void dir_process_zone(fs_t *fs, uint32_t zone, unsigned char *raw,
+                      size_t zone_bytes, uint32_t *remaining, size_t *buf_pos,
+                      bool *error) {
+  if (*error || *remaining == 0)
+    return;
+
+  size_t to_copy = (*remaining < zone_bytes) ? *remaining : zone_bytes;
+
+  if (zone == 0) {
+    // Hole: fill this part of the directory with zeros
+    memset(raw + *buf_pos, 0, to_copy);
+  } else {
+    off_t off = zone_to_offset(fs, zone);
+    if (off < 0) {
+      fprintf(stderr, "Invalid directory zone %u\n", zone);
+      *error = true;
+      return;
+    }
+
+    if (fseeko(fs->img, off, SEEK_SET) != 0) {
+      perror("fseeko (dir zone)");
+      *error = true;
+      return;
+    }
+
+    if (fread(raw + *buf_pos, 1, to_copy, fs->img) != to_copy) {
+      perror("fread (dir zone)");
+      *error = true;
+      return;
+    }
+  }
+
+  *buf_pos += to_copy;
+  *remaining -= to_copy;
 }
