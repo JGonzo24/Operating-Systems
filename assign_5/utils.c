@@ -589,51 +589,70 @@ size_t fs_zone_bytes(fs_t *fs) {
 }
 
 /**
- * @brief The table of zone pointers is blocksize bytes long
+ * @brief Number of 32-bit zone pointers in one zone
  */
 size_t fs_ptrs_per_zone(fs_t *fs) {
-  return (size_t)fs->sb.blocksize / sizeof(uint32_t);
+  size_t zone_bytes = fs_zone_bytes(fs);
+  return zone_bytes / sizeof(uint32_t);
 }
 
+
 int process_data(fs_t *fs, uint32_t zone, size_t to_write, FILE *out,
-                 file_read_state_t *state) {
+                 file_read_state_t *state)
+{
+  /* Nothing to do */
   if (state->remaining == 0 || to_write == 0) {
-    fprintf(stderr, "No more remaining or no to_write!\n");
     return 0;
   }
 
+  /* Don’t write past end-of-file */
   if (to_write > state->remaining) {
     to_write = state->remaining;
   }
 
   size_t buf_size = fs->sb.blocksize;
-  unsigned char *buf[buf_size];
+  unsigned char buf[buf_size];
 
-  // ------------------ I/O Portion -------------------//
+  /* If this is a real zone, seek to its start once before the loop */
+  off_t off = -1;
+  if (zone != 0) {
+    off = zone_to_offset(fs, zone);
+    if (off < 0) {
+      fprintf(stderr, "Invalid data zone %u\n", zone);
+      return -1;
+    }
+    if (fseeko(fs->img, off, SEEK_SET) != 0) {
+      perror("fseeko (data zone)");
+      return -1;
+    }
+  }
+
+  /* Single loop: handle hole vs real zone *inside* */
   while (to_write > 0) {
     size_t chunk = (to_write < buf_size) ? to_write : buf_size;
-    // Write zeros if holes
+
     if (zone == 0) {
+      /* HOLE: fill buffer with zeros */
       memset(buf, 0, chunk);
-    }
-    // Real zone
-    else {
+    } else {
+      /* REAL DATA: read from image into buf */
       if (fread(buf, 1, chunk, fs->img) != chunk) {
-        perror("fread");
+        perror("fread (data zone)");
         return -1;
       }
     }
 
-    // Write either zeros or actual data to out
+    /* Write whatever is in buf (zeros or real data) to output */
     if (fwrite(buf, 1, chunk, out) != chunk) {
       perror("fwrite");
       return -1;
     }
 
-    to_write -= chunk;
-    state->remaining -= chunk;
+    to_write             -= chunk;
+    state->remaining     -= chunk;
     state->total_written += chunk;
   }
+
   return 0;
 }
 
