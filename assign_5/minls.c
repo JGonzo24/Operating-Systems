@@ -1,6 +1,7 @@
 #include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int main(int argc, char *argv[]) 
 {
@@ -93,7 +94,6 @@ int main(int argc, char *argv[])
 
       char perm[11];
       mode_to_string(child.mode, perm);
-
       printf("%s %u %s\n",
              perm,
              child.size,
@@ -105,11 +105,13 @@ int main(int argc, char *argv[])
   {
     char perm[11];
     mode_to_string(target.mode, perm);
+    const char* name = minls_struct->path;
+    while (*name == '/') name++;
 
     printf("%s %u %s\n",
            perm,
            target.size,
-           minls_struct->path);
+           name);
   }
 
   free_args(args);

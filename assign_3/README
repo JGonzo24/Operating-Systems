@@ -1,0 +1,8 @@
+Joshua Gonzalez
+
+To Run:
+make NUM_PHILOSOPHERS=x
+
+Ex. 
+make NUM_PHILOSOPHERS=7
+./dine 4

@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <sys/types.h>
+
 
 #define DIRECT_ZONES 7
 #define INODE_SIZE 64
@@ -116,7 +118,8 @@ int fs_lookup_path(fs_t *fs, const char *path,
                    inode_t *out_inode, uint32_t *out_inum);
 int inode_is_directory(inode_t* inode);
 void mode_to_string(uint16_t mode, char out[11]);
-int fs_read_directory(fs_t *fs, inode_t* dir_inode, minix_dir_entry* entries);
+int fs_read_directory(fs_t *fs, inode_t* dir_inode, 
+				minix_dir_entry* entries);
 off_t zone_to_offset(fs_t* fs, uint32_t zone);
 int fs_read_inode(fs_t *fs, uint32_t inum, inode_t* out);
 int read_superblock(fs_t* fs);
@@ -125,8 +128,10 @@ int allocate_struct(args_struct_t*, int argc, char *argv[]);
 void free_args(args_struct_t* args);
 FILE* open_img(const char *path);
 fs_t fs_open(const char* path);
-int read_partition_table(fs_t* fs, off_t offset, partition_table_entry_t parts[4]);
-int select_partition_table(int index, fs_t* fs, partition_table_entry_t parts[4]);
+int read_partition_table(fs_t* fs, off_t offset, 
+			partition_table_entry_t parts[4]);
+int select_partition_table(int index, fs_t* fs,
+			 partition_table_entry_t parts[4]);
 
 
 

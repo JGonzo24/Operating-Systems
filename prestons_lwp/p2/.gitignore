@@ -1,0 +1,8 @@
+*.o
+*.a
+*.out
+*.swp
+.DS_Store
+t_create_yield
+t_exit_wait
+t_schedswap

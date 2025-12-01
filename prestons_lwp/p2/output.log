@@ -1,0 +1,3853 @@
+
+------------------------
+Looking for source files
+------------------------
+
+Found: AlwaysZero.c fp.h hungrysnakes.c lwp.c lwp.h numbersmain.c randomsnakes.c sched_rr.c sched_rr.h schedulers.h smartalloc.c smartalloc.h snakes.h util.c util.h
+
+-----------------------
+Looking for a Makefile
+----------------------
+
+Found: Makefile
+
+--------------------------------
+Checking for long lines (no program should have any lines > 80 chars)
+--------------------------------
+
+perl: warning: Setting locale failed.
+perl: warning: Please check that your locale settings:
+	LANGUAGE = (unset),
+	LC_ALL = (unset),
+	LANG = "C.UTF-8"
+    are supported and installed on your system.
+perl: warning: Falling back to the standard locale ("C").
+Line length ok.
+
+
+------------------------------------
+Building the application: "make liblwp.so"
+------------------------------------
+
+make liblwp.so
+make: `liblwp.so' is up to date.
+
+---------------
+checking for liblwp.so
+---------------
+
+
+--------------------------------------------------------
+Test Results:
+   These are the results of trying your liblwp.so
+against several programs with different characteristics 
+described by the filename.  The output of your program
+is compared to a reference output using diff(1).  If they
+differ, the test case is a failure.
+
+
+Testing (failure details below):
+        -----
+         1) Linking (only) against required routines      ... ok.
+         2) Create a thread, but don't run it.            ... ok.
+         3) start(). System thread only. Calls exit(3);   ... FAILURE.
+         4) start(). System thread only. Calls lwp_exit() ... FAILURE.
+         5) Check stack frame alignment                   ... ok.
+         6) One lwp, calling lwp_yield(), then exit()     ... FAILURE.
+         7) One created lwp which calls exit(3), main() l ... ok.
+         8) Five lwps, calling lwp_yield(), then exit()   ... ok.
+         9) Five lwps, calling lwp_yield(), then lwp_exit ... FAILURE.
+        10) Five threads, variable iters, exit from front ... FAILURE.
+        11) Five threads, variable iters, exit from front ... FAILURE.
+        12) Five threads, variable iters, exit from back  ... FAILURE.
+        13) Five threads, AlwaysZero scheduling           ... FAILURE.
+        14) One lwp, yields, and returns                  ... FAILURE.
+        15) Ten lwps, yields, and returns                 ... FAILURE.
+        16) Lwp spawns another then exits 100 times.      ... ok.
+        17) Two Lwps. spawn then exits 50 times.          ... ok.
+        18) 1024 threads, random exit.                    ... FAILURE.
+        19) Ping pong with semaphores                     ... FAILURE.
+        20) Dine with semaphores                          ... FAILURE.
+        21) Transfer threads between schedulers (stopped) ... FAILURE.
+        22) Transfer threads between schedulers (live)    ... FAILURE.
+        23) Transfer threads to same scheduler (live)     ... FAILURE.
+        24) Transfer threads between schedulers check for ... FAILURE.
+        25) Check that Returned TIDs are unique           ... ok.
+        26) Does tid2thread return the right thread?      ... FAILURE.
+        27) Tid2thread() returns NULL given a bad tid?    ... FAILURE.
+        28) Is thread library using sched_one? sched_two? ... FAILURE.
+        -----
+FAILURE. (8/28 passed)
+
+
+-----------------------------------------------------------------
+Failure Details
+-----------------------------------------------------------------
+=================================================
+TEST 3: start().  System thread only.  Calls exit(3);
+
+This will cause the system thread to be turned into an LWP
+then bail.
+
+
+----------
+Reference:
+----------
+About to call lwp_start() with no threads...ok.
+----------
+Submitted:
+----------
+About to call lwp_start() with no threads...
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+1c1
+< About to call lwp_start() with no threads...ok.
+---
+> About to call lwp_start() with no threads...
+\ No newline at end of file
+---------
+=================================================
+TEST 4: start().  System thread only.  Calls lwp_exit();
+
+This will cause the system thread to be turned into an LWP
+then bail.
+
+
+----------
+Reference:
+----------
+About to call lwp_start() with no threads...ok.
+----------
+Submitted:
+----------
+About to call lwp_start() with no threads...
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+1c1
+< About to call lwp_start() with no threads...ok.
+---
+> About to call lwp_start() with no threads...
+\ No newline at end of file
+---------
+=================================================
+TEST 6: One lwp, calling lwp_yield(), then exit()
+
+This test creates a single thread out of the original thread, yields
+to itself then calls exit().
+
+----------
+Reference:
+----------
+Greetings from the original thread.  Yielding...
+I'm still alive.  Goodbye
+----------
+Submitted:
+----------
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+1,2d0
+< Greetings from the original thread.  Yielding...
+< I'm still alive.  Goodbye
+---------
+=================================================
+TEST 9: Five lwps, calling lwp_yield(), then lwp_exit()
+
+This test spawns five LWPs, each of which yields once,
+then calls lwp_exit() the second time.
+----------
+Reference:
+----------
+Greetings from Thread 0.  Yielding...
+Greetings from Thread 1.  Yielding...
+Greetings from Thread 2.  Yielding...
+Greetings from Thread 3.  Yielding...
+Greetings from Thread 4.  Yielding...
+I (0) am still alive.  Goodbye.
+I (1) am still alive.  Goodbye.
+I (2) am still alive.  Goodbye.
+I (3) am still alive.  Goodbye.
+I (4) am still alive.  Goodbye.
+LWPs have ended.
+----------
+Submitted:
+----------
+Greetings from Thread 0.  Yielding...
+Greetings from Thread 1.  Yielding...
+Greetings from Thread 2.  Yielding...
+Greetings from Thread 3.  Yielding...
+Greetings from Thread 4.  Yielding...
+I (0) am still alive.  Goodbye.
+I (1) am still alive.  Goodbye.
+I (2) am still alive.  Goodbye.
+I (3) am still alive.  Goodbye.
+I (4) am still alive.  Goodbye.
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+11d10
+< LWPs have ended.
+---------
+=================================================
+TEST 10: Five threads, variable iters, exit from front
+
+This is the numbersmain program distributed with the assignment.
+Each thread (1..5) exits after its number of iterations
+
+
+----------
+Reference:
+----------
+Launching LWPS
+    1
+         2
+              3
+                   4
+                        5
+         2
+              3
+                   4
+                        5
+              3
+                   4
+                        5
+                   4
+                        5
+                        5
+Back from LWPS.
+----------
+Submitted:
+----------
+Launching LWPS
+    1
+         2
+              3
+                   4
+                        5
+         2
+              3
+                   4
+                        5
+              3
+                   4
+                        5
+                   4
+                        5
+                        5
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+17d16
+< Back from LWPS.
+---------
+=================================================
+TEST 11: Five threads, variable iters, exit from front
+
+This is the numbersmain program distributed with the assignment.
+Each thread (1..5) exits after its number of iterations
+
+
+----------
+Reference:
+----------
+Launching LWPS
+    1
+         2
+              3
+                   4
+                        5
+         2
+              3
+                   4
+                        5
+A thread exited with status 1
+              3
+                   4
+                        5
+A thread exited with status 2
+                   4
+                        5
+A thread exited with status 3
+                        5
+A thread exited with status 4
+A thread exited with status 5
+Back from LWPS.
+----------
+Submitted:
+----------
+Launching LWPS
+    1
+         2
+              3
+                   4
+                        5
+         2
+              3
+                   4
+                        5
+              3
+                   4
+                        5
+                   4
+                        5
+                        5
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+11d10
+< A thread exited with status 1
+15d13
+< A thread exited with status 2
+18d15
+< A thread exited with status 3
+20,22d16
+< A thread exited with status 4
+< A thread exited with status 5
+< Back from LWPS.
+---------
+=================================================
+TEST 12: Five threads, variable iters, exit from back
+
+This is the numbersmain program distributed with the assignment.
+Each thread (1..5) exits after N minus its number of iterations.
+The effect is to always have the last process call lwp_exit().
+
+
+----------
+Reference:
+----------
+Launching LWPS
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+    1
+         2
+              3
+    1
+         2
+    1
+Back from LWPS.
+----------
+Submitted:
+----------
+Launching LWPS
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+    1
+         2
+              3
+    1
+         2
+    1
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+17d16
+< Back from LWPS.
+---------
+=================================================
+TEST 13: Five threads, AlwaysZero scheduling
+
+This is the numbersmain program distributed with the assignment,
+but with the scheduler changed to always run the head of the queue.
+Each thread (1..5) exits after its number of iterations.
+
+
+----------
+Reference:
+----------
+Launching LWPS
+    1
+         2
+         2
+              3
+              3
+              3
+                   4
+                   4
+                   4
+                   4
+                        5
+                        5
+                        5
+                        5
+                        5
+Back from LWPS.
+----------
+Submitted:
+----------
+Launching LWPS
+    1
+         2
+         2
+              3
+              3
+              3
+                   4
+                   4
+                   4
+                   4
+                        5
+                        5
+                        5
+                        5
+                        5
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+17d16
+< Back from LWPS.
+---------
+=================================================
+TEST 14: One lwp, yields, and returns
+
+This test spawns a single thread that prints a message, yields
+to itself, then returns
+
+----------
+Reference:
+----------
+Greetings from Thread 0.  Yielding...
+I'm still alive.  Goodbye
+After thread termination
+----------
+Submitted:
+----------
+Greetings from Thread 0.  Yielding...
+I'm still alive.  Goodbye
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+3d2
+< After thread termination
+---------
+=================================================
+TEST 15: Ten lwps, yields, and returns
+
+This test spawns several threads that prints a message, yields
+to itself, then returns
+
+----------
+Reference:
+----------
+Greetings from Thread 0.  Yielding...
+Greetings from Thread 1.  Yielding...
+Greetings from Thread 2.  Yielding...
+Greetings from Thread 3.  Yielding...
+Greetings from Thread 4.  Yielding...
+Greetings from Thread 5.  Yielding...
+Greetings from Thread 6.  Yielding...
+Greetings from Thread 7.  Yielding...
+Greetings from Thread 8.  Yielding...
+Greetings from Thread 9.  Yielding...
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+After thread termination
+----------
+Submitted:
+----------
+Greetings from Thread 0.  Yielding...
+Greetings from Thread 1.  Yielding...
+Greetings from Thread 2.  Yielding...
+Greetings from Thread 3.  Yielding...
+Greetings from Thread 4.  Yielding...
+Greetings from Thread 5.  Yielding...
+Greetings from Thread 6.  Yielding...
+Greetings from Thread 7.  Yielding...
+Greetings from Thread 8.  Yielding...
+Greetings from Thread 9.  Yielding...
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+I'm still alive.  Goodbye
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+21d20
+< After thread termination
+---------
+=================================================
+TEST 18: 1024 threads, random exit.
+
+Creat 1024 threads, each of which either yields or exits randomly until
+a counter reaches a given value.
+
+
+
+
+----------
+Reference:
+----------
+Spawining 4096 threads.
+Done.  Count is 50000. (Yielded 406869 times)
+----------
+Submitted:
+----------
+Spawining 4096 threads.
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+2d1
+< Done.  Count is 50000. (Yielded 406869 times)
+---------
+=================================================
+TEST 19: Ping pong with semaphores
+
+20 threads each of which either Pings or Pongs twice synchronized
+by a scheduler that supports semaphores.
+
+
+
+
+----------
+Reference:
+----------
+Spawining threads. (20)
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+Done.
+----------
+Submitted:
+----------
+Spawining threads. (20)
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+   Ping...pong.
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+22d21
+< Done.
+---------
+=================================================
+TEST 20: Dine with semaphores
+
+Dining philosophers synchronized by a scheduler that supports
+semaphores.
+
+
+
+
+----------
+Reference:
+----------
+|=============|=============|=============|=============|=============|
+|      A      |      B      |      C      |      D      |      E      |
+|=============|=============|=============|=============|=============|
+| -----       | -----       | -----       | -----       | -----       |
+| -----       | -1---       | -----       | -----       | -----       |
+| -----       | -12--       | -----       | -----       | -----       |
+| -----       | -12-- Eat   | -----       | -----       | -----       |
+| -----       | -12-- Eat   | -----       | ---3-       | -----       |
+| -----       | -12-- Eat   | -----       | ---34       | -----       |
+| -----       | -12-- Eat   | -----       | ---34 Eat   | -----       |
+| -----       | -12-- Eat   | -----       | ---34 Eat   | 0----       |
+| -----       | -12-- Eat   | -----       | ---34       | 0----       |
+| -----       | -12-- Eat   | -----       | ----4       | 0----       |
+| -----       | -12-- Eat   | -----       | -----       | 0----       |
+| -----       | -12-- Eat   | -----       | ----- Think | 0----       |
+| -----       | -12-- Eat   | ---3-       | ----- Think | 0----       |
+| -----       | -12-- Eat   | ---3-       | ----- Think | 0---4       |
+| -----       | -12-- Eat   | ---3-       | ----- Think | 0---4 Eat   |
+| -----       | -12--       | ---3-       | ----- Think | 0---4 Eat   |
+| -----       | --2--       | ---3-       | ----- Think | 0---4 Eat   |
+| -----       | -----       | ---3-       | ----- Think | 0---4 Eat   |
+| -----       | ----- Think | ---3-       | ----- Think | 0---4 Eat   |
+| -1---       | ----- Think | ---3-       | ----- Think | 0---4 Eat   |
+| -1---       | ----- Think | --23-       | ----- Think | 0---4 Eat   |
+| -1---       | ----- Think | --23- Eat   | ----- Think | 0---4 Eat   |
+| -1---       | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+| -1---       | ----- Think | --23- Eat   | -----       | 0---4       |
+| -1---       | ----- Think | --23- Eat   | -----       | ----4       |
+| -1---       | ----- Think | --23- Eat   | -----       | -----       |
+| -1---       | ----- Think | --23- Eat   | -----       | ----- Think |
+| 01---       | ----- Think | --23- Eat   | -----       | ----- Think |
+| 01--- Eat   | ----- Think | --23- Eat   | -----       | ----- Think |
+| 01--- Eat   | ----- Think | --23- Eat   | -----       | -----       |
+| 01---       | ----- Think | --23- Eat   | -----       | -----       |
+| 0----       | ----- Think | --23- Eat   | -----       | -----       |
+| -----       | ----- Think | --23- Eat   | -----       | -----       |
+| ----- Think | ----- Think | --23- Eat   | -----       | -----       |
+| ----- Think | ----- Think | --23- Eat   | -----       | 0----       |
+| ----- Think | ----- Think | --23- Eat   | -----       | 0---4       |
+| ----- Think | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+| ----- Think | ----- Think | --23-       | -----       | 0---4 Eat   |
+| ----- Think | ----- Think | --2--       | -----       | 0---4 Eat   |
+| ----- Think | ----- Think | -----       | -----       | 0---4 Eat   |
+| ----- Think | ----- Think | ----- Think | -----       | 0---4 Eat   |
+| ----- Think | ----- Think | ----- Think | ---3-       | 0---4 Eat   |
+| ----- Think | -----       | ----- Think | ---3-       | 0---4 Eat   |
+| ----- Think | -1---       | ----- Think | ---3-       | 0---4 Eat   |
+| ----- Think | -12--       | ----- Think | ---3-       | 0---4 Eat   |
+| ----- Think | -12-- Eat   | ----- Think | ---3-       | 0---4 Eat   |
+| -----       | -12-- Eat   | ----- Think | ---3-       | 0---4 Eat   |
+| -----       | -12--       | ----- Think | ---3-       | 0---4 Eat   |
+| -----       | --2--       | ----- Think | ---3-       | 0---4 Eat   |
+| -----       | -----       | ----- Think | ---3-       | 0---4 Eat   |
+| -----       | ----- Think | ----- Think | ---3-       | 0---4 Eat   |
+| -1---       | ----- Think | ----- Think | ---3-       | 0---4 Eat   |
+| -1---       | ----- Think | -----       | ---3-       | 0---4 Eat   |
+| -1---       | -----       | -----       | ---3-       | 0---4 Eat   |
+| -1---       | -----       | -----       | ---3-       | 0---4       |
+| -1---       | -----       | -----       | ---3-       | ----4       |
+| -1---       | -----       | -----       | ---3-       | -----       |
+| -1---       | -----       | -----       | ---3-       | ----- Think |
+| 01---       | -----       | -----       | ---3-       | ----- Think |
+| 01--- Eat   | -----       | -----       | ---3-       | ----- Think |
+| 01--- Eat   | -----       | -----       | ---34       | ----- Think |
+| 01--- Eat   | -----       | -----       | ---34 Eat   | ----- Think |
+| 01---       | -----       | -----       | ---34 Eat   | ----- Think |
+| 0----       | -----       | -----       | ---34 Eat   | ----- Think |
+| -----       | -----       | -----       | ---34 Eat   | ----- Think |
+| ----- Think | -----       | -----       | ---34 Eat   | ----- Think |
+| ----- Think | -1---       | -----       | ---34 Eat   | ----- Think |
+| ----- Think | -12--       | -----       | ---34 Eat   | ----- Think |
+| ----- Think | -12-- Eat   | -----       | ---34 Eat   | ----- Think |
+| ----- Think | -12-- Eat   | -----       | ---34       | ----- Think |
+| ----- Think | -12-- Eat   | -----       | ----4       | ----- Think |
+| ----- Think | -12-- Eat   | -----       | -----       | ----- Think |
+| ----- Think | -12-- Eat   | -----       | ----- Think | ----- Think |
+| ----- Think | -12-- Eat   | ---3-       | ----- Think | ----- Think |
+| ----- Think | -12-- Eat   | ---3-       | -----       | ----- Think |
+| ----- Think | -12-- Eat   | ---3-       | -----       | -----       |
+| ----- Think | -12-- Eat   | ---3-       | -----       | 0----       |
+| ----- Think | -12-- Eat   | ---3-       | -----       | 0---4       |
+| ----- Think | -12-- Eat   | ---3-       | -----       | 0---4 Eat   |
+| ----- Think | -12--       | ---3-       | -----       | 0---4 Eat   |
+| ----- Think | --2--       | ---3-       | -----       | 0---4 Eat   |
+| ----- Think | -----       | ---3-       | -----       | 0---4 Eat   |
+| ----- Think | ----- Think | ---3-       | -----       | 0---4 Eat   |
+| ----- Think | ----- Think | --23-       | -----       | 0---4 Eat   |
+| ----- Think | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+| -----       | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+| -1---       | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+| -1---       | ----- Think | --23-       | -----       | 0---4 Eat   |
+| -1---       | ----- Think | --2--       | -----       | 0---4 Eat   |
+| -1---       | ----- Think | -----       | -----       | 0---4 Eat   |
+| -1---       | ----- Think | ----- Think | -----       | 0---4 Eat   |
+| -1---       | ----- Think | ----- Think | ---3-       | 0---4 Eat   |
+| -1---       | -----       | ----- Think | ---3-       | 0---4 Eat   |
+| -1---       | -----       | ----- Think | ---3-       | 0---4       |
+| -1---       | -----       | ----- Think | ---3-       | ----4       |
+| -1---       | -----       | ----- Think | ---3-       | -----       |
+| -1---       | -----       | ----- Think | ---3-       | ----- Think |
+| -1---       | -----       | ----- Think | ---34       | ----- Think |
+| -1---       | -----       | ----- Think | ---34 Eat   | ----- Think |
+| 01---       | -----       | ----- Think | ---34 Eat   | ----- Think |
+| 01--- Eat   | -----       | ----- Think | ---34 Eat   | ----- Think |
+| 01--- Eat   | -----       | ----- Think | ---34       | ----- Think |
+| 01--- Eat   | -----       | ----- Think | ----4       | ----- Think |
+| 01--- Eat   | -----       | ----- Think | -----       | ----- Think |
+| 01--- Eat   | -----       | ----- Think | ----- Think | ----- Think |
+| 01--- Eat   | -----       | -----       | ----- Think | ----- Think |
+| 01--- Eat   | -----       | ---3-       | ----- Think | ----- Think |
+| 01--- Eat   | -----       | --23-       | ----- Think | ----- Think |
+| 01--- Eat   | -----       | --23- Eat   | ----- Think | ----- Think |
+| 01--- Eat   | -----       | --23-       | ----- Think | ----- Think |
+| 01--- Eat   | -----       | --2--       | ----- Think | ----- Think |
+| 01--- Eat   | -----       | -----       | ----- Think | ----- Think |
+| 01--- Eat   | -----       | ----- Think | ----- Think | ----- Think |
+| 01--- Eat   | -----       | ----- Think | -----       | ----- Think |
+| 01--- Eat   | -----       | ----- Think | ---3-       | ----- Think |
+| 01--- Eat   | -----       | ----- Think | ---34       | ----- Think |
+| 01--- Eat   | -----       | ----- Think | ---34 Eat   | ----- Think |
+| 01--- Eat   | -----       | ----- Think | ---34 Eat   | -----       |
+| 01--- Eat   | -----       | -----       | ---34 Eat   | -----       |
+| 01--- Eat   | -----       | -----       | ---34       | -----       |
+| 01--- Eat   | -----       | -----       | ----4       | -----       |
+| 01--- Eat   | -----       | -----       | -----       | -----       |
+| 01--- Eat   | -----       | -----       | ----- Think | -----       |
+| 01--- Eat   | -----       | ---3-       | ----- Think | -----       |
+| 01--- Eat   | -----       | --23-       | ----- Think | -----       |
+| 01--- Eat   | -----       | --23- Eat   | ----- Think | -----       |
+| 01--- Eat   | -----       | --23-       | ----- Think | -----       |
+| 01--- Eat   | -----       | --2--       | ----- Think | -----       |
+| 01--- Eat   | -----       | -----       | ----- Think | -----       |
+| 01--- Eat   | -----       | ----- Think | ----- Think | -----       |
+| 01---       | -----       | ----- Think | ----- Think | -----       |
+| 0----       | -----       | ----- Think | ----- Think | -----       |
+| -----       | -----       | ----- Think | ----- Think | -----       |
+| ----- Think | -----       | ----- Think | ----- Think | -----       |
+| ----- Think | -----       | ----- Think | ----- Think | 0----       |
+| ----- Think | -1---       | ----- Think | ----- Think | 0----       |
+| ----- Think | -1---       | ----- Think | ----- Think | 0---4       |
+| ----- Think | -1---       | ----- Think | ----- Think | 0---4 Eat   |
+| ----- Think | -12--       | ----- Think | ----- Think | 0---4 Eat   |
+| ----- Think | -12-- Eat   | ----- Think | ----- Think | 0---4 Eat   |
+| ----- Think | -12-- Eat   | -----       | ----- Think | 0---4 Eat   |
+| ----- Think | -12-- Eat   | ---3-       | ----- Think | 0---4 Eat   |
+| ----- Think | -12-- Eat   | ---3-       | -----       | 0---4 Eat   |
+| ----- Think | -12--       | ---3-       | -----       | 0---4 Eat   |
+| ----- Think | --2--       | ---3-       | -----       | 0---4 Eat   |
+| ----- Think | -----       | ---3-       | -----       | 0---4 Eat   |
+| ----- Think | ----- Think | ---3-       | -----       | 0---4 Eat   |
+| ----- Think | ----- Think | --23-       | -----       | 0---4 Eat   |
+| ----- Think | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+| -----       | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+| -1---       | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+| -1---       | ----- Think | --23- Eat   | -----       | 0---4       |
+| -1---       | ----- Think | --23- Eat   | -----       | ----4       |
+| -1---       | ----- Think | --23- Eat   | -----       | -----       |
+| -1---       | ----- Think | --23- Eat   | -----       | ----- Think |
+| 01---       | ----- Think | --23- Eat   | -----       | ----- Think |
+| 01--- Eat   | ----- Think | --23- Eat   | -----       | ----- Think |
+| 01--- Eat   | -----       | --23- Eat   | -----       | ----- Think |
+| 01--- Eat   | -----       | --23-       | -----       | ----- Think |
+| 01--- Eat   | -----       | --2--       | -----       | ----- Think |
+| 01--- Eat   | -----       | -----       | -----       | ----- Think |
+| 01--- Eat   | -----       | ----- Think | -----       | ----- Think |
+| 01--- Eat   | -----       | ----- Think | ---3-       | ----- Think |
+| 01--- Eat   | -----       | ----- Think | ---34       | ----- Think |
+| 01--- Eat   | -----       | ----- Think | ---34 Eat   | ----- Think |
+| 01--- Eat   | -----       | ----- Think | ---34 Eat   | -----       |
+| 01--- Eat   | -----       | -----       | ---34 Eat   | -----       |
+| 01---       | -----       | -----       | ---34 Eat   | -----       |
+| 0----       | -----       | -----       | ---34 Eat   | -----       |
+| -----       | -----       | -----       | ---34 Eat   | -----       |
+| ----- Think | -----       | -----       | ---34 Eat   | -----       |
+| ----- Think | -----       | -----       | ---34 Eat   | 0----       |
+| ----- Think | -1---       | -----       | ---34 Eat   | 0----       |
+| ----- Think | -12--       | -----       | ---34 Eat   | 0----       |
+| ----- Think | -12-- Eat   | -----       | ---34 Eat   | 0----       |
+| ----- Think | -12-- Eat   | -----       | ---34       | 0----       |
+| ----- Think | -12-- Eat   | -----       | ----4       | 0----       |
+| ----- Think | -12-- Eat   | -----       | -----       | 0----       |
+| ----- Think | -12-- Eat   | -----       | ----- Think | 0----       |
+| ----- Think | -12-- Eat   | -----       | ----- Think | 0---4       |
+| ----- Think | -12-- Eat   | -----       | ----- Think | 0---4 Eat   |
+| ----- Think | -12--       | -----       | ----- Think | 0---4 Eat   |
+| ----- Think | --2--       | -----       | ----- Think | 0---4 Eat   |
+| ----- Think | -----       | -----       | ----- Think | 0---4 Eat   |
+| ----- Think | ----- Think | -----       | ----- Think | 0---4 Eat   |
+| ----- Think | ----- Think | -----       | -----       | 0---4 Eat   |
+| ----- Think | -----       | -----       | -----       | 0---4 Eat   |
+| -----       | -----       | -----       | -----       | 0---4 Eat   |
+| -1---       | -----       | -----       | -----       | 0---4 Eat   |
+| -1---       | -----       | -----       | -----       | 0---4       |
+| -1---       | -----       | -----       | -----       | ----4       |
+| -1---       | -----       | -----       | -----       | -----       |
+| -1---       | -----       | -----       | -----       | ----- Think |
+| 01---       | -----       | -----       | -----       | ----- Think |
+| 01--- Eat   | -----       | -----       | -----       | ----- Think |
+| 01--- Eat   | -----       | -----       | -----       | -----       |
+| 01---       | -----       | -----       | -----       | -----       |
+| 0----       | -----       | -----       | -----       | -----       |
+| -----       | -----       | -----       | -----       | -----       |
+| ----- Think | -----       | -----       | -----       | -----       |
+| -----       | -----       | -----       | -----       | -----       |
+|=============|=============|=============|=============|=============|
+----------
+Submitted:
+----------
+|=============|=============|=============|=============|=============|
+|      A      |      B      |      C      |      D      |      E      |
+|=============|=============|=============|=============|=============|
+| -----       | -----       | -----       | -----       | -----       |
+| -----       | -1---       | -----       | -----       | -----       |
+| -----       | -12--       | -----       | -----       | -----       |
+| -----       | -12-- Eat   | -----       | -----       | -----       |
+| -----       | -12-- Eat   | -----       | -----       | 0----       |
+| -----       | -12-- Eat   | -----       | ---3-       | 0----       |
+| -----       | -12-- Eat   | -----       | ---3-       | 0---4       |
+| -----       | -12-- Eat   | -----       | ---3-       | 0---4 Eat   |
+| -----       | -12--       | -----       | ---3-       | 0---4 Eat   |
+| -----       | --2--       | -----       | ---3-       | 0---4 Eat   |
+| -----       | -----       | -----       | ---3-       | 0---4 Eat   |
+| -----       | ----- Think | -----       | ---3-       | 0---4 Eat   |
+| -1---       | ----- Think | -----       | ---3-       | 0---4 Eat   |
+| -1---       | ----- Think | -----       | ---3-       | 0---4       |
+| -1---       | ----- Think | -----       | ---3-       | ----4       |
+| -1---       | ----- Think | -----       | ---3-       | -----       |
+| -1---       | ----- Think | -----       | ---3-       | ----- Think |
+| 01---       | ----- Think | -----       | ---3-       | ----- Think |
+| 01--- Eat   | ----- Think | -----       | ---3-       | ----- Think |
+| 01--- Eat   | ----- Think | -----       | ---34       | ----- Think |
+| 01--- Eat   | ----- Think | -----       | ---34 Eat   | ----- Think |
+| 01---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+| 0----       | ----- Think | -----       | ---34 Eat   | ----- Think |
+| -----       | ----- Think | -----       | ---34 Eat   | ----- Think |
+| ----- Think | ----- Think | -----       | ---34 Eat   | ----- Think |
+| -----       | ----- Think | -----       | ---34 Eat   | ----- Think |
+| -1---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+| 01---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+| 01--- Eat   | ----- Think | -----       | ---34 Eat   | ----- Think |
+| 01--- Eat   | -----       | -----       | ---34 Eat   | ----- Think |
+| 01---       | -----       | -----       | ---34 Eat   | ----- Think |
+| 0----       | -----       | -----       | ---34 Eat   | ----- Think |
+| -----       | -----       | -----       | ---34 Eat   | ----- Think |
+| ----- Think | -----       | -----       | ---34 Eat   | ----- Think |
+| ----- Think | -1---       | -----       | ---34 Eat   | ----- Think |
+| ----- Think | -12--       | -----       | ---34 Eat   | ----- Think |
+| ----- Think | -12-- Eat   | -----       | ---34 Eat   | ----- Think |
+| ----- Think | -12-- Eat   | -----       | ---34 Eat   | -----       |
+| ----- Think | -12-- Eat   | -----       | ---34 Eat   | 0----       |
+| ----- Think | -12-- Eat   | -----       | ---34       | 0----       |
+| ----- Think | -12-- Eat   | -----       | ----4       | 0----       |
+| ----- Think | -12-- Eat   | -----       | -----       | 0----       |
+| ----- Think | -12-- Eat   | -----       | ----- Think | 0----       |
+| ----- Think | -12-- Eat   | ---3-       | ----- Think | 0----       |
+| ----- Think | -12-- Eat   | ---3-       | ----- Think | 0---4       |
+| ----- Think | -12-- Eat   | ---3-       | ----- Think | 0---4 Eat   |
+| ----- Think | -12--       | ---3-       | ----- Think | 0---4 Eat   |
+| ----- Think | --2--       | ---3-       | ----- Think | 0---4 Eat   |
+| ----- Think | -----       | ---3-       | ----- Think | 0---4 Eat   |
+| ----- Think | ----- Think | ---3-       | ----- Think | 0---4 Eat   |
+| ----- Think | ----- Think | --23-       | ----- Think | 0---4 Eat   |
+| ----- Think | ----- Think | --23- Eat   | ----- Think | 0---4 Eat   |
+| ----- Think | ----- Think | --23-       | ----- Think | 0---4 Eat   |
+| ----- Think | ----- Think | --2--       | ----- Think | 0---4 Eat   |
+| ----- Think | ----- Think | -----       | ----- Think | 0---4 Eat   |
+| ----- Think | ----- Think | ----- Think | ----- Think | 0---4 Eat   |
+| ----- Think | -----       | ----- Think | ----- Think | 0---4 Eat   |
+| ----- Think | -1---       | ----- Think | ----- Think | 0---4 Eat   |
+| ----- Think | -12--       | ----- Think | ----- Think | 0---4 Eat   |
+| ----- Think | -12-- Eat   | ----- Think | ----- Think | 0---4 Eat   |
+| -----       | -12-- Eat   | ----- Think | ----- Think | 0---4 Eat   |
+| -----       | -12--       | ----- Think | ----- Think | 0---4 Eat   |
+| -----       | --2--       | ----- Think | ----- Think | 0---4 Eat   |
+| -----       | -----       | ----- Think | ----- Think | 0---4 Eat   |
+| -----       | ----- Think | ----- Think | ----- Think | 0---4 Eat   |
+| -1---       | ----- Think | ----- Think | ----- Think | 0---4 Eat   |
+| -1---       | ----- Think | ----- Think | -----       | 0---4 Eat   |
+| -1---       | ----- Think | ----- Think | ---3-       | 0---4 Eat   |
+| -1---       | ----- Think | -----       | ---3-       | 0---4 Eat   |
+| -1---       | ----- Think | -----       | ---3-       | 0---4       |
+| -1---       | ----- Think | -----       | ---3-       | ----4       |
+| -1---       | ----- Think | -----       | ---3-       | -----       |
+| -1---       | ----- Think | -----       | ---3-       | ----- Think |
+| -1---       | ----- Think | -----       | ---34       | ----- Think |
+| -1---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+| 01---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+| 01--- Eat   | ----- Think | -----       | ---34 Eat   | ----- Think |
+| 01---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+| 0----       | ----- Think | -----       | ---34 Eat   | ----- Think |
+| -----       | ----- Think | -----       | ---34 Eat   | ----- Think |
+| ----- Think | ----- Think | -----       | ---34 Eat   | ----- Think |
+| -----       | ----- Think | -----       | ---34 Eat   | ----- Think |
+| -1---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+| 01---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+| 01--- Eat   | ----- Think | -----       | ---34 Eat   | ----- Think |
+| 01--- Eat   | ----- Think | -----       | ---34       | ----- Think |
+| 01--- Eat   | ----- Think | -----       | ----4       | ----- Think |
+| 01--- Eat   | ----- Think | -----       | -----       | ----- Think |
+| 01--- Eat   | ----- Think | -----       | ----- Think | ----- Think |
+| 01--- Eat   | ----- Think | ---3-       | ----- Think | ----- Think |
+| 01--- Eat   | ----- Think | --23-       | ----- Think | ----- Think |
+| 01--- Eat   | ----- Think | --23- Eat   | ----- Think | ----- Think |
+| 01--- Eat   | ----- Think | --23- Eat   | -----       | ----- Think |
+| 01--- Eat   | -----       | --23- Eat   | -----       | ----- Think |
+| 01--- Eat   | -----       | --23- Eat   | -----       | -----       |
+| 01--- Eat   | -----       | --23-       | -----       | -----       |
+| 01--- Eat   | -----       | --2--       | -----       | -----       |
+| 01--- Eat   | -----       | -----       | -----       | -----       |
+| 01--- Eat   | -----       | ----- Think | -----       | -----       |
+| 01--- Eat   | -----       | ----- Think | ---3-       | -----       |
+| 01--- Eat   | -----       | ----- Think | ---34       | -----       |
+| 01--- Eat   | -----       | ----- Think | ---34 Eat   | -----       |
+| 01---       | -----       | ----- Think | ---34 Eat   | -----       |
+| 0----       | -----       | ----- Think | ---34 Eat   | -----       |
+| -----       | -----       | ----- Think | ---34 Eat   | -----       |
+| ----- Think | -----       | ----- Think | ---34 Eat   | -----       |
+| ----- Think | -1---       | ----- Think | ---34 Eat   | -----       |
+| ----- Think | -12--       | ----- Think | ---34 Eat   | -----       |
+| ----- Think | -12-- Eat   | ----- Think | ---34 Eat   | -----       |
+| ----- Think | -12-- Eat   | ----- Think | ---34 Eat   | 0----       |
+| ----- Think | -12-- Eat   | ----- Think | ---34       | 0----       |
+| ----- Think | -12-- Eat   | ----- Think | ----4       | 0----       |
+| ----- Think | -12-- Eat   | ----- Think | -----       | 0----       |
+| ----- Think | -12-- Eat   | ----- Think | ----- Think | 0----       |
+| ----- Think | -12-- Eat   | ----- Think | ----- Think | 0---4       |
+| ----- Think | -12-- Eat   | ----- Think | ----- Think | 0---4 Eat   |
+| ----- Think | -12-- Eat   | ----- Think | ----- Think | 0---4       |
+| ----- Think | -12-- Eat   | ----- Think | ----- Think | ----4       |
+| ----- Think | -12-- Eat   | ----- Think | ----- Think | -----       |
+| ----- Think | -12-- Eat   | ----- Think | ----- Think | ----- Think |
+| ----- Think | -12-- Eat   | ----- Think | ----- Think | -----       |
+| ----- Think | -12-- Eat   | -----       | ----- Think | -----       |
+| ----- Think | -12-- Eat   | -----       | ----- Think | 0----       |
+| ----- Think | -12-- Eat   | -----       | ----- Think | 0---4       |
+| ----- Think | -12-- Eat   | -----       | ----- Think | 0---4 Eat   |
+| ----- Think | -12-- Eat   | ---3-       | ----- Think | 0---4 Eat   |
+| -----       | -12-- Eat   | ---3-       | ----- Think | 0---4 Eat   |
+| -----       | -12--       | ---3-       | ----- Think | 0---4 Eat   |
+| -----       | --2--       | ---3-       | ----- Think | 0---4 Eat   |
+| -----       | -----       | ---3-       | ----- Think | 0---4 Eat   |
+| -----       | ----- Think | ---3-       | ----- Think | 0---4 Eat   |
+| -----       | ----- Think | --23-       | ----- Think | 0---4 Eat   |
+| -----       | ----- Think | --23- Eat   | ----- Think | 0---4 Eat   |
+| -1---       | ----- Think | --23- Eat   | ----- Think | 0---4 Eat   |
+| -1---       | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+| -1---       | -----       | --23- Eat   | -----       | 0---4 Eat   |
+| -1---       | -----       | --23- Eat   | -----       | 0---4       |
+| -1---       | -----       | --23- Eat   | -----       | ----4       |
+| -1---       | -----       | --23- Eat   | -----       | -----       |
+| -1---       | -----       | --23- Eat   | -----       | ----- Think |
+| 01---       | -----       | --23- Eat   | -----       | ----- Think |
+| 01--- Eat   | -----       | --23- Eat   | -----       | ----- Think |
+| 01---       | -----       | --23- Eat   | -----       | ----- Think |
+| 0----       | -----       | --23- Eat   | -----       | ----- Think |
+| -----       | -----       | --23- Eat   | -----       | ----- Think |
+| ----- Think | -----       | --23- Eat   | -----       | ----- Think |
+| ----- Think | -1---       | --23- Eat   | -----       | ----- Think |
+| ----- Think | -1---       | --23- Eat   | -----       | -----       |
+| ----- Think | -1---       | --23- Eat   | -----       | 0----       |
+| ----- Think | -1---       | --23- Eat   | -----       | 0---4       |
+| ----- Think | -1---       | --23- Eat   | -----       | 0---4 Eat   |
+| ----- Think | -1---       | --23-       | -----       | 0---4 Eat   |
+| ----- Think | -1---       | --2--       | -----       | 0---4 Eat   |
+| ----- Think | -1---       | -----       | -----       | 0---4 Eat   |
+| ----- Think | -1---       | ----- Think | -----       | 0---4 Eat   |
+| ----- Think | -12--       | ----- Think | -----       | 0---4 Eat   |
+| ----- Think | -12-- Eat   | ----- Think | -----       | 0---4 Eat   |
+| ----- Think | -12-- Eat   | ----- Think | ---3-       | 0---4 Eat   |
+| ----- Think | -12-- Eat   | ----- Think | ---3-       | 0---4       |
+| ----- Think | -12-- Eat   | ----- Think | ---3-       | ----4       |
+| ----- Think | -12-- Eat   | ----- Think | ---3-       | -----       |
+| ----- Think | -12-- Eat   | ----- Think | ---3-       | ----- Think |
+| ----- Think | -12-- Eat   | ----- Think | ---34       | ----- Think |
+| ----- Think | -12-- Eat   | ----- Think | ---34 Eat   | ----- Think |
+| ----- Think | -12-- Eat   | ----- Think | ---34       | ----- Think |
+| ----- Think | -12-- Eat   | ----- Think | ----4       | ----- Think |
+| ----- Think | -12-- Eat   | ----- Think | -----       | ----- Think |
+| ----- Think | -12-- Eat   | ----- Think | ----- Think | ----- Think |
+| ----- Think | -12-- Eat   | -----       | ----- Think | ----- Think |
+| ----- Think | -12-- Eat   | ---3-       | ----- Think | ----- Think |
+| ----- Think | -12-- Eat   | ---3-       | -----       | ----- Think |
+| -----       | -12-- Eat   | ---3-       | -----       | ----- Think |
+| -----       | -12-- Eat   | ---3-       | -----       | -----       |
+| -----       | -12--       | ---3-       | -----       | -----       |
+| -----       | --2--       | ---3-       | -----       | -----       |
+| -----       | -----       | ---3-       | -----       | -----       |
+| -----       | ----- Think | ---3-       | -----       | -----       |
+| -----       | ----- Think | --23-       | -----       | -----       |
+| -----       | ----- Think | --23- Eat   | -----       | -----       |
+| -----       | -----       | --23- Eat   | -----       | -----       |
+| -----       | -----       | --23-       | -----       | -----       |
+| -----       | -----       | --2--       | -----       | -----       |
+| -----       | -----       | -----       | -----       | -----       |
+| -----       | -----       | ----- Think | -----       | -----       |
+| -----       | -----       | ----- Think | ---3-       | -----       |
+| -----       | -----       | ----- Think | ---34       | -----       |
+| -----       | -----       | ----- Think | ---34 Eat   | -----       |
+| -----       | -----       | -----       | ---34 Eat   | -----       |
+| -----       | -----       | -----       | ---34       | -----       |
+| -----       | -----       | -----       | ----4       | -----       |
+| -----       | -----       | -----       | -----       | -----       |
+| -----       | -----       | -----       | ----- Think | -----       |
+| -----       | -----       | ---3-       | ----- Think | -----       |
+| -----       | -----       | --23-       | ----- Think | -----       |
+| -----       | -----       | --23- Eat   | ----- Think | -----       |
+| -----       | -----       | --23-       | ----- Think | -----       |
+| -----       | -----       | --2--       | ----- Think | -----       |
+| -----       | -----       | -----       | ----- Think | -----       |
+| -----       | -----       | ----- Think | ----- Think | -----       |
+| -----       | -----       | ----- Think | -----       | -----       |
+| -----       | -----       | -----       | -----       | -----       |
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+8,13d7
+< | -----       | -12-- Eat   | -----       | ---3-       | -----       |
+< | -----       | -12-- Eat   | -----       | ---34       | -----       |
+< | -----       | -12-- Eat   | -----       | ---34 Eat   | -----       |
+< | -----       | -12-- Eat   | -----       | ---34 Eat   | 0----       |
+< | -----       | -12-- Eat   | -----       | ---34       | 0----       |
+< | -----       | -12-- Eat   | -----       | ----4       | 0----       |
+15,55c9,15
+< | -----       | -12-- Eat   | -----       | ----- Think | 0----       |
+< | -----       | -12-- Eat   | ---3-       | ----- Think | 0----       |
+< | -----       | -12-- Eat   | ---3-       | ----- Think | 0---4       |
+< | -----       | -12-- Eat   | ---3-       | ----- Think | 0---4 Eat   |
+< | -----       | -12--       | ---3-       | ----- Think | 0---4 Eat   |
+< | -----       | --2--       | ---3-       | ----- Think | 0---4 Eat   |
+< | -----       | -----       | ---3-       | ----- Think | 0---4 Eat   |
+< | -----       | ----- Think | ---3-       | ----- Think | 0---4 Eat   |
+< | -1---       | ----- Think | ---3-       | ----- Think | 0---4 Eat   |
+< | -1---       | ----- Think | --23-       | ----- Think | 0---4 Eat   |
+< | -1---       | ----- Think | --23- Eat   | ----- Think | 0---4 Eat   |
+< | -1---       | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+< | -1---       | ----- Think | --23- Eat   | -----       | 0---4       |
+< | -1---       | ----- Think | --23- Eat   | -----       | ----4       |
+< | -1---       | ----- Think | --23- Eat   | -----       | -----       |
+< | -1---       | ----- Think | --23- Eat   | -----       | ----- Think |
+< | 01---       | ----- Think | --23- Eat   | -----       | ----- Think |
+< | 01--- Eat   | ----- Think | --23- Eat   | -----       | ----- Think |
+< | 01--- Eat   | ----- Think | --23- Eat   | -----       | -----       |
+< | 01---       | ----- Think | --23- Eat   | -----       | -----       |
+< | 0----       | ----- Think | --23- Eat   | -----       | -----       |
+< | -----       | ----- Think | --23- Eat   | -----       | -----       |
+< | ----- Think | ----- Think | --23- Eat   | -----       | -----       |
+< | ----- Think | ----- Think | --23- Eat   | -----       | 0----       |
+< | ----- Think | ----- Think | --23- Eat   | -----       | 0---4       |
+< | ----- Think | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+< | ----- Think | ----- Think | --23-       | -----       | 0---4 Eat   |
+< | ----- Think | ----- Think | --2--       | -----       | 0---4 Eat   |
+< | ----- Think | ----- Think | -----       | -----       | 0---4 Eat   |
+< | ----- Think | ----- Think | ----- Think | -----       | 0---4 Eat   |
+< | ----- Think | ----- Think | ----- Think | ---3-       | 0---4 Eat   |
+< | ----- Think | -----       | ----- Think | ---3-       | 0---4 Eat   |
+< | ----- Think | -1---       | ----- Think | ---3-       | 0---4 Eat   |
+< | ----- Think | -12--       | ----- Think | ---3-       | 0---4 Eat   |
+< | ----- Think | -12-- Eat   | ----- Think | ---3-       | 0---4 Eat   |
+< | -----       | -12-- Eat   | ----- Think | ---3-       | 0---4 Eat   |
+< | -----       | -12--       | ----- Think | ---3-       | 0---4 Eat   |
+< | -----       | --2--       | ----- Think | ---3-       | 0---4 Eat   |
+< | -----       | -----       | ----- Think | ---3-       | 0---4 Eat   |
+< | -----       | ----- Think | ----- Think | ---3-       | 0---4 Eat   |
+< | -1---       | ----- Think | ----- Think | ---3-       | 0---4 Eat   |
+---
+> | -----       | -12-- Eat   | -----       | ---3-       | 0----       |
+> | -----       | -12-- Eat   | -----       | ---3-       | 0---4       |
+> | -----       | -12-- Eat   | -----       | ---3-       | 0---4 Eat   |
+> | -----       | -12--       | -----       | ---3-       | 0---4 Eat   |
+> | -----       | --2--       | -----       | ---3-       | 0---4 Eat   |
+> | -----       | -----       | -----       | ---3-       | 0---4 Eat   |
+> | -----       | ----- Think | -----       | ---3-       | 0---4 Eat   |
+57,64c17,32
+< | -1---       | -----       | -----       | ---3-       | 0---4 Eat   |
+< | -1---       | -----       | -----       | ---3-       | 0---4       |
+< | -1---       | -----       | -----       | ---3-       | ----4       |
+< | -1---       | -----       | -----       | ---3-       | -----       |
+< | -1---       | -----       | -----       | ---3-       | ----- Think |
+< | 01---       | -----       | -----       | ---3-       | ----- Think |
+< | 01--- Eat   | -----       | -----       | ---3-       | ----- Think |
+< | 01--- Eat   | -----       | -----       | ---34       | ----- Think |
+---
+> | -1---       | ----- Think | -----       | ---3-       | 0---4       |
+> | -1---       | ----- Think | -----       | ---3-       | ----4       |
+> | -1---       | ----- Think | -----       | ---3-       | -----       |
+> | -1---       | ----- Think | -----       | ---3-       | ----- Think |
+> | 01---       | ----- Think | -----       | ---3-       | ----- Think |
+> | 01--- Eat   | ----- Think | -----       | ---3-       | ----- Think |
+> | 01--- Eat   | ----- Think | -----       | ---34       | ----- Think |
+> | 01--- Eat   | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | 01---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | 0----       | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | -----       | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | ----- Think | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | -----       | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | -1---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | 01---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | 01--- Eat   | ----- Think | -----       | ---34 Eat   | ----- Think |
+73,140c41,60
+< | ----- Think | -12-- Eat   | -----       | ---34       | ----- Think |
+< | ----- Think | -12-- Eat   | -----       | ----4       | ----- Think |
+< | ----- Think | -12-- Eat   | -----       | -----       | ----- Think |
+< | ----- Think | -12-- Eat   | -----       | ----- Think | ----- Think |
+< | ----- Think | -12-- Eat   | ---3-       | ----- Think | ----- Think |
+< | ----- Think | -12-- Eat   | ---3-       | -----       | ----- Think |
+< | ----- Think | -12-- Eat   | ---3-       | -----       | -----       |
+< | ----- Think | -12-- Eat   | ---3-       | -----       | 0----       |
+< | ----- Think | -12-- Eat   | ---3-       | -----       | 0---4       |
+< | ----- Think | -12-- Eat   | ---3-       | -----       | 0---4 Eat   |
+< | ----- Think | -12--       | ---3-       | -----       | 0---4 Eat   |
+< | ----- Think | --2--       | ---3-       | -----       | 0---4 Eat   |
+< | ----- Think | -----       | ---3-       | -----       | 0---4 Eat   |
+< | ----- Think | ----- Think | ---3-       | -----       | 0---4 Eat   |
+< | ----- Think | ----- Think | --23-       | -----       | 0---4 Eat   |
+< | ----- Think | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+< | -----       | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+< | -1---       | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+< | -1---       | ----- Think | --23-       | -----       | 0---4 Eat   |
+< | -1---       | ----- Think | --2--       | -----       | 0---4 Eat   |
+< | -1---       | ----- Think | -----       | -----       | 0---4 Eat   |
+< | -1---       | ----- Think | ----- Think | -----       | 0---4 Eat   |
+< | -1---       | ----- Think | ----- Think | ---3-       | 0---4 Eat   |
+< | -1---       | -----       | ----- Think | ---3-       | 0---4 Eat   |
+< | -1---       | -----       | ----- Think | ---3-       | 0---4       |
+< | -1---       | -----       | ----- Think | ---3-       | ----4       |
+< | -1---       | -----       | ----- Think | ---3-       | -----       |
+< | -1---       | -----       | ----- Think | ---3-       | ----- Think |
+< | -1---       | -----       | ----- Think | ---34       | ----- Think |
+< | -1---       | -----       | ----- Think | ---34 Eat   | ----- Think |
+< | 01---       | -----       | ----- Think | ---34 Eat   | ----- Think |
+< | 01--- Eat   | -----       | ----- Think | ---34 Eat   | ----- Think |
+< | 01--- Eat   | -----       | ----- Think | ---34       | ----- Think |
+< | 01--- Eat   | -----       | ----- Think | ----4       | ----- Think |
+< | 01--- Eat   | -----       | ----- Think | -----       | ----- Think |
+< | 01--- Eat   | -----       | ----- Think | ----- Think | ----- Think |
+< | 01--- Eat   | -----       | -----       | ----- Think | ----- Think |
+< | 01--- Eat   | -----       | ---3-       | ----- Think | ----- Think |
+< | 01--- Eat   | -----       | --23-       | ----- Think | ----- Think |
+< | 01--- Eat   | -----       | --23- Eat   | ----- Think | ----- Think |
+< | 01--- Eat   | -----       | --23-       | ----- Think | ----- Think |
+< | 01--- Eat   | -----       | --2--       | ----- Think | ----- Think |
+< | 01--- Eat   | -----       | -----       | ----- Think | ----- Think |
+< | 01--- Eat   | -----       | ----- Think | ----- Think | ----- Think |
+< | 01--- Eat   | -----       | ----- Think | -----       | ----- Think |
+< | 01--- Eat   | -----       | ----- Think | ---3-       | ----- Think |
+< | 01--- Eat   | -----       | ----- Think | ---34       | ----- Think |
+< | 01--- Eat   | -----       | ----- Think | ---34 Eat   | ----- Think |
+< | 01--- Eat   | -----       | ----- Think | ---34 Eat   | -----       |
+< | 01--- Eat   | -----       | -----       | ---34 Eat   | -----       |
+< | 01--- Eat   | -----       | -----       | ---34       | -----       |
+< | 01--- Eat   | -----       | -----       | ----4       | -----       |
+< | 01--- Eat   | -----       | -----       | -----       | -----       |
+< | 01--- Eat   | -----       | -----       | ----- Think | -----       |
+< | 01--- Eat   | -----       | ---3-       | ----- Think | -----       |
+< | 01--- Eat   | -----       | --23-       | ----- Think | -----       |
+< | 01--- Eat   | -----       | --23- Eat   | ----- Think | -----       |
+< | 01--- Eat   | -----       | --23-       | ----- Think | -----       |
+< | 01--- Eat   | -----       | --2--       | ----- Think | -----       |
+< | 01--- Eat   | -----       | -----       | ----- Think | -----       |
+< | 01--- Eat   | -----       | ----- Think | ----- Think | -----       |
+< | 01---       | -----       | ----- Think | ----- Think | -----       |
+< | 0----       | -----       | ----- Think | ----- Think | -----       |
+< | -----       | -----       | ----- Think | ----- Think | -----       |
+< | ----- Think | -----       | ----- Think | ----- Think | -----       |
+< | ----- Think | -----       | ----- Think | ----- Think | 0----       |
+< | ----- Think | -1---       | ----- Think | ----- Think | 0----       |
+< | ----- Think | -1---       | ----- Think | ----- Think | 0---4       |
+---
+> | ----- Think | -12-- Eat   | -----       | ---34 Eat   | -----       |
+> | ----- Think | -12-- Eat   | -----       | ---34 Eat   | 0----       |
+> | ----- Think | -12-- Eat   | -----       | ---34       | 0----       |
+> | ----- Think | -12-- Eat   | -----       | ----4       | 0----       |
+> | ----- Think | -12-- Eat   | -----       | -----       | 0----       |
+> | ----- Think | -12-- Eat   | -----       | ----- Think | 0----       |
+> | ----- Think | -12-- Eat   | ---3-       | ----- Think | 0----       |
+> | ----- Think | -12-- Eat   | ---3-       | ----- Think | 0---4       |
+> | ----- Think | -12-- Eat   | ---3-       | ----- Think | 0---4 Eat   |
+> | ----- Think | -12--       | ---3-       | ----- Think | 0---4 Eat   |
+> | ----- Think | --2--       | ---3-       | ----- Think | 0---4 Eat   |
+> | ----- Think | -----       | ---3-       | ----- Think | 0---4 Eat   |
+> | ----- Think | ----- Think | ---3-       | ----- Think | 0---4 Eat   |
+> | ----- Think | ----- Think | --23-       | ----- Think | 0---4 Eat   |
+> | ----- Think | ----- Think | --23- Eat   | ----- Think | 0---4 Eat   |
+> | ----- Think | ----- Think | --23-       | ----- Think | 0---4 Eat   |
+> | ----- Think | ----- Think | --2--       | ----- Think | 0---4 Eat   |
+> | ----- Think | ----- Think | -----       | ----- Think | 0---4 Eat   |
+> | ----- Think | ----- Think | ----- Think | ----- Think | 0---4 Eat   |
+> | ----- Think | -----       | ----- Think | ----- Think | 0---4 Eat   |
+144,159c64,95
+< | ----- Think | -12-- Eat   | -----       | ----- Think | 0---4 Eat   |
+< | ----- Think | -12-- Eat   | ---3-       | ----- Think | 0---4 Eat   |
+< | ----- Think | -12-- Eat   | ---3-       | -----       | 0---4 Eat   |
+< | ----- Think | -12--       | ---3-       | -----       | 0---4 Eat   |
+< | ----- Think | --2--       | ---3-       | -----       | 0---4 Eat   |
+< | ----- Think | -----       | ---3-       | -----       | 0---4 Eat   |
+< | ----- Think | ----- Think | ---3-       | -----       | 0---4 Eat   |
+< | ----- Think | ----- Think | --23-       | -----       | 0---4 Eat   |
+< | ----- Think | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+< | -----       | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+< | -1---       | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+< | -1---       | ----- Think | --23- Eat   | -----       | 0---4       |
+< | -1---       | ----- Think | --23- Eat   | -----       | ----4       |
+< | -1---       | ----- Think | --23- Eat   | -----       | -----       |
+< | -1---       | ----- Think | --23- Eat   | -----       | ----- Think |
+< | 01---       | ----- Think | --23- Eat   | -----       | ----- Think |
+---
+> | -----       | -12-- Eat   | ----- Think | ----- Think | 0---4 Eat   |
+> | -----       | -12--       | ----- Think | ----- Think | 0---4 Eat   |
+> | -----       | --2--       | ----- Think | ----- Think | 0---4 Eat   |
+> | -----       | -----       | ----- Think | ----- Think | 0---4 Eat   |
+> | -----       | ----- Think | ----- Think | ----- Think | 0---4 Eat   |
+> | -1---       | ----- Think | ----- Think | ----- Think | 0---4 Eat   |
+> | -1---       | ----- Think | ----- Think | -----       | 0---4 Eat   |
+> | -1---       | ----- Think | ----- Think | ---3-       | 0---4 Eat   |
+> | -1---       | ----- Think | -----       | ---3-       | 0---4 Eat   |
+> | -1---       | ----- Think | -----       | ---3-       | 0---4       |
+> | -1---       | ----- Think | -----       | ---3-       | ----4       |
+> | -1---       | ----- Think | -----       | ---3-       | -----       |
+> | -1---       | ----- Think | -----       | ---3-       | ----- Think |
+> | -1---       | ----- Think | -----       | ---34       | ----- Think |
+> | -1---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | 01---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | 01--- Eat   | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | 01---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | 0----       | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | -----       | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | ----- Think | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | -----       | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | -1---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | 01---       | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | 01--- Eat   | ----- Think | -----       | ---34 Eat   | ----- Think |
+> | 01--- Eat   | ----- Think | -----       | ---34       | ----- Think |
+> | 01--- Eat   | ----- Think | -----       | ----4       | ----- Think |
+> | 01--- Eat   | ----- Think | -----       | -----       | ----- Think |
+> | 01--- Eat   | ----- Think | -----       | ----- Think | ----- Think |
+> | 01--- Eat   | ----- Think | ---3-       | ----- Think | ----- Think |
+> | 01--- Eat   | ----- Think | --23-       | ----- Think | ----- Think |
+> | 01--- Eat   | ----- Think | --23- Eat   | ----- Think | ----- Think |
+162,168c98,104
+< | 01--- Eat   | -----       | --23-       | -----       | ----- Think |
+< | 01--- Eat   | -----       | --2--       | -----       | ----- Think |
+< | 01--- Eat   | -----       | -----       | -----       | ----- Think |
+< | 01--- Eat   | -----       | ----- Think | -----       | ----- Think |
+< | 01--- Eat   | -----       | ----- Think | ---3-       | ----- Think |
+< | 01--- Eat   | -----       | ----- Think | ---34       | ----- Think |
+< | 01--- Eat   | -----       | ----- Think | ---34 Eat   | ----- Think |
+---
+> | 01--- Eat   | -----       | --23- Eat   | -----       | -----       |
+> | 01--- Eat   | -----       | --23-       | -----       | -----       |
+> | 01--- Eat   | -----       | --2--       | -----       | -----       |
+> | 01--- Eat   | -----       | -----       | -----       | -----       |
+> | 01--- Eat   | -----       | ----- Think | -----       | -----       |
+> | 01--- Eat   | -----       | ----- Think | ---3-       | -----       |
+> | 01--- Eat   | -----       | ----- Think | ---34       | -----       |
+170,181c106,125
+< | 01--- Eat   | -----       | -----       | ---34 Eat   | -----       |
+< | 01---       | -----       | -----       | ---34 Eat   | -----       |
+< | 0----       | -----       | -----       | ---34 Eat   | -----       |
+< | -----       | -----       | -----       | ---34 Eat   | -----       |
+< | ----- Think | -----       | -----       | ---34 Eat   | -----       |
+< | ----- Think | -----       | -----       | ---34 Eat   | 0----       |
+< | ----- Think | -1---       | -----       | ---34 Eat   | 0----       |
+< | ----- Think | -12--       | -----       | ---34 Eat   | 0----       |
+< | ----- Think | -12-- Eat   | -----       | ---34 Eat   | 0----       |
+< | ----- Think | -12-- Eat   | -----       | ---34       | 0----       |
+< | ----- Think | -12-- Eat   | -----       | ----4       | 0----       |
+< | ----- Think | -12-- Eat   | -----       | -----       | 0----       |
+---
+> | 01---       | -----       | ----- Think | ---34 Eat   | -----       |
+> | 0----       | -----       | ----- Think | ---34 Eat   | -----       |
+> | -----       | -----       | ----- Think | ---34 Eat   | -----       |
+> | ----- Think | -----       | ----- Think | ---34 Eat   | -----       |
+> | ----- Think | -1---       | ----- Think | ---34 Eat   | -----       |
+> | ----- Think | -12--       | ----- Think | ---34 Eat   | -----       |
+> | ----- Think | -12-- Eat   | ----- Think | ---34 Eat   | -----       |
+> | ----- Think | -12-- Eat   | ----- Think | ---34 Eat   | 0----       |
+> | ----- Think | -12-- Eat   | ----- Think | ---34       | 0----       |
+> | ----- Think | -12-- Eat   | ----- Think | ----4       | 0----       |
+> | ----- Think | -12-- Eat   | ----- Think | -----       | 0----       |
+> | ----- Think | -12-- Eat   | ----- Think | ----- Think | 0----       |
+> | ----- Think | -12-- Eat   | ----- Think | ----- Think | 0---4       |
+> | ----- Think | -12-- Eat   | ----- Think | ----- Think | 0---4 Eat   |
+> | ----- Think | -12-- Eat   | ----- Think | ----- Think | 0---4       |
+> | ----- Think | -12-- Eat   | ----- Think | ----- Think | ----4       |
+> | ----- Think | -12-- Eat   | ----- Think | ----- Think | -----       |
+> | ----- Think | -12-- Eat   | ----- Think | ----- Think | ----- Think |
+> | ----- Think | -12-- Eat   | ----- Think | ----- Think | -----       |
+> | ----- Think | -12-- Eat   | -----       | ----- Think | -----       |
+185,201c129,185
+< | ----- Think | -12--       | -----       | ----- Think | 0---4 Eat   |
+< | ----- Think | --2--       | -----       | ----- Think | 0---4 Eat   |
+< | ----- Think | -----       | -----       | ----- Think | 0---4 Eat   |
+< | ----- Think | ----- Think | -----       | ----- Think | 0---4 Eat   |
+< | ----- Think | ----- Think | -----       | -----       | 0---4 Eat   |
+< | ----- Think | -----       | -----       | -----       | 0---4 Eat   |
+< | -----       | -----       | -----       | -----       | 0---4 Eat   |
+< | -1---       | -----       | -----       | -----       | 0---4 Eat   |
+< | -1---       | -----       | -----       | -----       | 0---4       |
+< | -1---       | -----       | -----       | -----       | ----4       |
+< | -1---       | -----       | -----       | -----       | -----       |
+< | -1---       | -----       | -----       | -----       | ----- Think |
+< | 01---       | -----       | -----       | -----       | ----- Think |
+< | 01--- Eat   | -----       | -----       | -----       | ----- Think |
+< | 01--- Eat   | -----       | -----       | -----       | -----       |
+< | 01---       | -----       | -----       | -----       | -----       |
+< | 0----       | -----       | -----       | -----       | -----       |
+---
+> | ----- Think | -12-- Eat   | ---3-       | ----- Think | 0---4 Eat   |
+> | -----       | -12-- Eat   | ---3-       | ----- Think | 0---4 Eat   |
+> | -----       | -12--       | ---3-       | ----- Think | 0---4 Eat   |
+> | -----       | --2--       | ---3-       | ----- Think | 0---4 Eat   |
+> | -----       | -----       | ---3-       | ----- Think | 0---4 Eat   |
+> | -----       | ----- Think | ---3-       | ----- Think | 0---4 Eat   |
+> | -----       | ----- Think | --23-       | ----- Think | 0---4 Eat   |
+> | -----       | ----- Think | --23- Eat   | ----- Think | 0---4 Eat   |
+> | -1---       | ----- Think | --23- Eat   | ----- Think | 0---4 Eat   |
+> | -1---       | ----- Think | --23- Eat   | -----       | 0---4 Eat   |
+> | -1---       | -----       | --23- Eat   | -----       | 0---4 Eat   |
+> | -1---       | -----       | --23- Eat   | -----       | 0---4       |
+> | -1---       | -----       | --23- Eat   | -----       | ----4       |
+> | -1---       | -----       | --23- Eat   | -----       | -----       |
+> | -1---       | -----       | --23- Eat   | -----       | ----- Think |
+> | 01---       | -----       | --23- Eat   | -----       | ----- Think |
+> | 01--- Eat   | -----       | --23- Eat   | -----       | ----- Think |
+> | 01---       | -----       | --23- Eat   | -----       | ----- Think |
+> | 0----       | -----       | --23- Eat   | -----       | ----- Think |
+> | -----       | -----       | --23- Eat   | -----       | ----- Think |
+> | ----- Think | -----       | --23- Eat   | -----       | ----- Think |
+> | ----- Think | -1---       | --23- Eat   | -----       | ----- Think |
+> | ----- Think | -1---       | --23- Eat   | -----       | -----       |
+> | ----- Think | -1---       | --23- Eat   | -----       | 0----       |
+> | ----- Think | -1---       | --23- Eat   | -----       | 0---4       |
+> | ----- Think | -1---       | --23- Eat   | -----       | 0---4 Eat   |
+> | ----- Think | -1---       | --23-       | -----       | 0---4 Eat   |
+> | ----- Think | -1---       | --2--       | -----       | 0---4 Eat   |
+> | ----- Think | -1---       | -----       | -----       | 0---4 Eat   |
+> | ----- Think | -1---       | ----- Think | -----       | 0---4 Eat   |
+> | ----- Think | -12--       | ----- Think | -----       | 0---4 Eat   |
+> | ----- Think | -12-- Eat   | ----- Think | -----       | 0---4 Eat   |
+> | ----- Think | -12-- Eat   | ----- Think | ---3-       | 0---4 Eat   |
+> | ----- Think | -12-- Eat   | ----- Think | ---3-       | 0---4       |
+> | ----- Think | -12-- Eat   | ----- Think | ---3-       | ----4       |
+> | ----- Think | -12-- Eat   | ----- Think | ---3-       | -----       |
+> | ----- Think | -12-- Eat   | ----- Think | ---3-       | ----- Think |
+> | ----- Think | -12-- Eat   | ----- Think | ---34       | ----- Think |
+> | ----- Think | -12-- Eat   | ----- Think | ---34 Eat   | ----- Think |
+> | ----- Think | -12-- Eat   | ----- Think | ---34       | ----- Think |
+> | ----- Think | -12-- Eat   | ----- Think | ----4       | ----- Think |
+> | ----- Think | -12-- Eat   | ----- Think | -----       | ----- Think |
+> | ----- Think | -12-- Eat   | ----- Think | ----- Think | ----- Think |
+> | ----- Think | -12-- Eat   | -----       | ----- Think | ----- Think |
+> | ----- Think | -12-- Eat   | ---3-       | ----- Think | ----- Think |
+> | ----- Think | -12-- Eat   | ---3-       | -----       | ----- Think |
+> | -----       | -12-- Eat   | ---3-       | -----       | ----- Think |
+> | -----       | -12-- Eat   | ---3-       | -----       | -----       |
+> | -----       | -12--       | ---3-       | -----       | -----       |
+> | -----       | --2--       | ---3-       | -----       | -----       |
+> | -----       | -----       | ---3-       | -----       | -----       |
+> | -----       | ----- Think | ---3-       | -----       | -----       |
+> | -----       | ----- Think | --23-       | -----       | -----       |
+> | -----       | ----- Think | --23- Eat   | -----       | -----       |
+> | -----       | -----       | --23- Eat   | -----       | -----       |
+> | -----       | -----       | --23-       | -----       | -----       |
+> | -----       | -----       | --2--       | -----       | -----       |
+203c187,203
+< | ----- Think | -----       | -----       | -----       | -----       |
+---
+> | -----       | -----       | ----- Think | -----       | -----       |
+> | -----       | -----       | ----- Think | ---3-       | -----       |
+> | -----       | -----       | ----- Think | ---34       | -----       |
+> | -----       | -----       | ----- Think | ---34 Eat   | -----       |
+> | -----       | -----       | -----       | ---34 Eat   | -----       |
+> | -----       | -----       | -----       | ---34       | -----       |
+> | -----       | -----       | -----       | ----4       | -----       |
+> | -----       | -----       | -----       | -----       | -----       |
+> | -----       | -----       | -----       | ----- Think | -----       |
+> | -----       | -----       | ---3-       | ----- Think | -----       |
+> | -----       | -----       | --23-       | ----- Think | -----       |
+> | -----       | -----       | --23- Eat   | ----- Think | -----       |
+> | -----       | -----       | --23-       | ----- Think | -----       |
+> | -----       | -----       | --2--       | ----- Think | -----       |
+> | -----       | -----       | -----       | ----- Think | -----       |
+> | -----       | -----       | ----- Think | ----- Think | -----       |
+> | -----       | -----       | ----- Think | -----       | -----       |
+205d204
+< |=============|=============|=============|=============|=============|
+---------
+=================================================
+TEST 21: Transfer threads between schedulers (stopped)
+
+Create a number of threads, then set_scheduler() and see if 
+they transfer properly.
+
+
+
+
+
+----------
+Reference:
+----------
+Creating LWPS
+Setting the scheduler.
+Launching LWPS
+    1
+         2
+              3
+                   4
+                        5
+         2
+              3
+                   4
+                        5
+              3
+                   4
+                        5
+                   4
+                        5
+                        5
+Back from LWPS.
+----------
+Submitted:
+----------
+Creating LWPS
+Setting the scheduler.
+Launching LWPS
+    1
+         2
+              3
+                   4
+                        5
+         2
+              3
+                   4
+                        5
+              3
+                   4
+                        5
+                   4
+                        5
+                        5
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+19d18
+< Back from LWPS.
+---------
+=================================================
+TEST 22: Transfer threads between schedulers (live)
+
+Create a number of threads, start them running,
+then set_scheduler() and see if they transfer properly.
+
+
+
+
+
+----------
+Reference:
+----------
+Creating LWPS
+Launching LWPS
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+Setting the scheduler.
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+Back from LWPS.
+----------
+Submitted:
+----------
+Creating LWPS
+Launching LWPS
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+Setting the scheduler.
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+34d33
+< Back from LWPS.
+---------
+=================================================
+TEST 23: Transfer threads to same scheduler (live)
+
+Create a number of threads, start them running,
+then set_scheduler() to the currently installed
+scheduler.
+
+
+
+
+
+----------
+Reference:
+----------
+Setting Scheduler
+Creating LWPS
+Launching LWPS
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+Setting the scheduler to itself.
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+Back from LWPS.
+----------
+Submitted:
+----------
+Setting Scheduler
+Creating LWPS
+Launching LWPS
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+Setting the scheduler to itself.
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+    1
+         2
+              3
+                   4
+                        5
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+35d34
+< Back from LWPS.
+---------
+=================================================
+TEST 24: Transfer threads between schedulers check for init/shutdown
+
+Create a number of threads, start them running,
+then set_scheduler() and see if they transfer properly.
+
+
+
+
+
+----------
+Reference:
+----------
+init: called on first scheduler
+Creating LWPS
+Admitting new thread to First scheduler
+Admitting new thread to First scheduler
+Admitting new thread to First scheduler
+Admitting new thread to First scheduler
+Admitting new thread to First scheduler
+Launching LWPS
+Admitting new thread to First scheduler
+(first->next())
+    1
+(first->next())
+         2
+(first->next())
+              3
+(first->next())
+                   4
+(first->next())
+                        5
+(first->next())
+Removing thread from First scheduler
+(first->next())
+    1
+(first->next())
+         2
+(first->next())
+              3
+(first->next())
+                   4
+(first->next())
+                        5
+(first->next())
+    1
+(first->next())
+         2
+(first->next())
+              3
+(first->next())
+                   4
+(first->next())
+                        5
+Setting the scheduler.
+init: called on second scheduler
+(first->next())
+Removing thread from First scheduler
+Admitting new thread to Second scheduler
+(first->next())
+Removing thread from First scheduler
+Admitting new thread to Second scheduler
+(first->next())
+Removing thread from First scheduler
+Admitting new thread to Second scheduler
+(first->next())
+Removing thread from First scheduler
+Admitting new thread to Second scheduler
+(first->next())
+Removing thread from First scheduler
+Admitting new thread to Second scheduler
+(first->next())
+shutdown: called on first scheduler
+(second->next())
+    1
+(second->next())
+         2
+(second->next())
+              3
+(second->next())
+                   4
+(second->next())
+                        5
+(second->next())
+    1
+(second->next())
+         2
+(second->next())
+              3
+(second->next())
+                   4
+(second->next())
+                        5
+(second->next())
+    1
+(second->next())
+         2
+(second->next())
+              3
+(second->next())
+                   4
+(second->next())
+                        5
+(second->next())
+Removing thread from Second scheduler
+Admitting new thread to Second scheduler
+(second->next())
+Removing thread from Second scheduler
+(second->next())
+Removing thread from Second scheduler
+(second->next())
+Removing thread from Second scheduler
+(second->next())
+Removing thread from Second scheduler
+(second->next())
+Removing thread from Second scheduler
+Admitting new thread to Second scheduler
+(second->next())
+Back from LWPS.
+----------
+Submitted:
+----------
+init: called on first scheduler
+Creating LWPS
+Admitting new thread to First scheduler
+Admitting new thread to First scheduler
+Admitting new thread to First scheduler
+Admitting new thread to First scheduler
+Admitting new thread to First scheduler
+Launching LWPS
+(first->next())
+    1
+(first->next())
+         2
+(first->next())
+              3
+(first->next())
+                   4
+(first->next())
+                        5
+(first->next())
+    1
+(first->next())
+         2
+(first->next())
+              3
+(first->next())
+                   4
+(first->next())
+                        5
+(first->next())
+    1
+(first->next())
+         2
+(first->next())
+              3
+(first->next())
+                   4
+(first->next())
+                        5
+Setting the scheduler.
+init: called on second scheduler
+(first->next())
+Removing thread from First scheduler
+Admitting new thread to Second scheduler
+(first->next())
+Removing thread from First scheduler
+Admitting new thread to Second scheduler
+(first->next())
+Removing thread from First scheduler
+Admitting new thread to Second scheduler
+(first->next())
+Removing thread from First scheduler
+Admitting new thread to Second scheduler
+(first->next())
+Removing thread from First scheduler
+Admitting new thread to Second scheduler
+(first->next())
+shutdown: called on first scheduler
+(second->next())
+    1
+(second->next())
+         2
+(second->next())
+              3
+(second->next())
+                   4
+(second->next())
+                        5
+(second->next())
+    1
+(second->next())
+         2
+(second->next())
+              3
+(second->next())
+                   4
+(second->next())
+                        5
+(second->next())
+    1
+(second->next())
+         2
+(second->next())
+              3
+(second->next())
+                   4
+(second->next())
+                        5
+(second->next())
+Removing thread from Second scheduler
+(second->next())
+Removing thread from Second scheduler
+(second->next())
+Removing thread from Second scheduler
+(second->next())
+Removing thread from Second scheduler
+(second->next())
+Removing thread from Second scheduler
+(second->next())
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+9d8
+< Admitting new thread to First scheduler
+21,22d19
+< Removing thread from First scheduler
+< (first->next())
+93,95d89
+< Admitting new thread to Second scheduler
+< (second->next())
+< Removing thread from Second scheduler
+104d97
+< Admitting new thread to Second scheduler
+106d98
+< Back from LWPS.
+---------
+=================================================
+TEST 26: Does tid2thread return the right thread?
+
+This is the similar numbersmain program distributed with the
+assignment, but with a scheduler that returns a random thread.
+(seeded, so reproducible).  After 50 iterations, the last thread runs
+through the list of all threads and sees if tid2thread is returning
+the right context.
+
+
+
+----------
+Reference:
+----------
+Launching LWPS
+                   4
+    1
+                                       8
+                   4
+         2
+              3
+                             6
+              3
+                   4
+                                            9
+                   4
+                                            9
+                                  7
+              3
+                                  7
+                   4
+                   4
+         2
+              3
+         2
+    1
+                                  7
+                   4
+              3
+         2
+    1
+                        5
+                             6
+                                  7
+              3
+              3
+              3
+                             6
+         2
+                        5
+                             6
+                   4
+                                       8
+                             6
+              3
+              3
+              3
+                        5
+    1
+                        5
+    1
+              3
+                        5
+                                       8
+    1
+         2
+              3
+         2
+    1
+    1
+                             6
+         2
+                             6
+    1
+                                  7
+                                  7
+              3
+                                            9
+         2
+    1
+                                       8
+         2
+                             6
+                                       8
+                                       8
+                                       8
+                                       8
+                                       8
+    1
+                                  7
+                                            9
+                        5
+         2
+                                  7
+                        5
+         2
+                                       8
+                                  7
+              3
+                             6
+              3
+                        5
+                   4
+                        5
+         2
+                                       8
+                                  7
+                                  7
+                                       8
+                                            9
+                                  7
+                                  7
+    1
+              3
+              3
+                   4
+                             6
+                                  7
+                             6
+                                            9
+                        5
+                                  7
+                   4
+                   4
+         2
+                   4
+         2
+                   4
+              3
+                   4
+    1
+                             6
+                                  7
+              3
+                                  7
+                   4
+                   4
+                                       8
+                        5
+                                  7
+    1
+              3
+              3
+                                  7
+    1
+                                       8
+                   4
+                                  7
+                   4
+                                            9
+                   4
+                             6
+         2
+                   4
+                        5
+                                       8
+    1
+                                            9
+              3
+                        5
+                        5
+                        5
+              3
+                        5
+                                            9
+              3
+                                            9
+         2
+                                  7
+                                       8
+    1
+                                  7
+         2
+                   4
+                             6
+                   4
+              3
+                                       8
+                                            9
+                        5
+                             6
+    1
+                                            9
+                   4
+    1
+                                       8
+                   4
+              3
+                                            9
+                                            9
+                                       8
+              3
+              3
+    1
+                        5
+                                  7
+                             6
+                                  7
+              3
+                        5
+                                       8
+                             6
+                        5
+              3
+         2
+              3
+                             6
+                   4
+                                            9
+         2
+                        5
+         2
+                                       8
+                                       8
+    1
+         2
+                                            9
+                                  7
+                             6
+                                       8
+                   4
+         2
+                                            9
+                   4
+                                  7
+                                  7
+                   4
+                   4
+                             6
+                             6
+                                       8
+         2
+                                       8
+    1
+                                            9
+                        5
+                             6
+                                       8
+                                            9
+                             6
+                                       8
+    1
+              3
+    1
+                   4
+                             6
+              3
+         2
+                                            9
+              3
+              3
+                                  7
+                                            9
+                        5
+                   4
+                                  7
+              3
+                             6
+    1
+                             6
+    1
+                        5
+                   4
+                        5
+         2
+                                            9
+                   4
+    1
+                                       8
+                   4
+                                  7
+                             6
+                   4
+                                  7
+                   4
+              3
+                                       8
+                                            9
+                             6
+                                       8
+                   4
+    1
+                                  7
+              3
+              3
+                             6
+                        5
+    1
+                                  7
+                                       8
+    1
+                                            9
+                             6
+                        5
+                        5
+                             6
+                   4
+                             6
+                   4
+                                  7
+                        5
+                                  7
+                                            9
+                   4
+                                  7
+                   4
+                        5
+                        5
+                   4
+         2
+                   4
+                             6
+                                       8
+                        5
+              3
+                        5
+                        5
+         2
+                                       8
+              3
+                                            9
+                             6
+    1
+                   4
+                                            9
+         2
+                             6
+                                  7
+    1
+                   4
+                                            9
+                                       8
+         2
+                                  7
+    1
+                                  7
+                                       8
+         2
+                             6
+                   4
+              3
+                                  7
+                                  7
+                                            9
+    1
+                                       8
+    1
+                                            9
+         2
+                                       8
+    1
+                                            9
+              3
+                                  7
+                                  7
+                        5
+                                            9
+                        5
+                   4
+         2
+                                       8
+    1
+                                       8
+                                       8
+                                  7
+                             6
+    1
+    1
+              3
+    1
+                                       8
+    1
+              3
+                                       8
+    1
+              3
+                             6
+                                       8
+                                  7
+    1
+    1
+         2
+                        5
+                             6
+         2
+              3
+         2
+    1
+                                  7
+                             6
+              3
+                   4
+                        5
+                                            9
+                                       8
+                             6
+    1
+                        5
+    1
+                        5
+                                  7
+                                       8
+              3
+                        5
+         2
+                                       8
+         2
+                                            9
+         2
+                   4
+         2
+                        5
+                                       8
+                        5
+                                            9
+                                  7
+                                            9
+                        5
+                        5
+                             6
+                             6
+                        5
+    1
+                                  7
+                                  7
+                                            9
+         2
+    1
+                                       8
+                             6
+         2
+                                       8
+                        5
+    1
+                                            9
+                                       8
+                             6
+                        5
+                        5
+                        5
+         2
+         2
+         2
+                             6
+                             6
+         2
+                             6
+         2
+                                            9
+         2
+                                            9
+                             6
+                                            9
+                             6
+         2
+         2
+                                            9
+                                            9
+                                            9
+                                            9
+                                            9
+                                            9
+                                            9
+Checking thread IDs...
+...done.
+----------
+Submitted:
+----------
+Launching LWPS
+         2
+                                            9
+                                            9
+                                  7
+              3
+    1
+         2
+                        5
+         2
+              3
+                                       8
+              3
+                                       8
+                             6
+         2
+                             6
+              3
+              3
+    1
+         2
+    1
+                                            9
+                             6
+              3
+         2
+    1
+                                            9
+                   4
+                        5
+                             6
+         2
+         2
+         2
+                        5
+    1
+                   4
+                        5
+              3
+                                  7
+                        5
+         2
+         2
+         2
+                   4
+                                            9
+                   4
+                                            9
+         2
+                   4
+                                  7
+                                            9
+    1
+         2
+    1
+                                            9
+                                            9
+                        5
+    1
+                        5
+                                            9
+                             6
+                             6
+         2
+                                       8
+    1
+                                            9
+                                  7
+    1
+                        5
+                                  7
+                                  7
+                                  7
+                                  7
+                                  7
+                                            9
+                             6
+                                       8
+                   4
+    1
+                             6
+                   4
+    1
+                                  7
+                             6
+         2
+                        5
+         2
+                   4
+              3
+                   4
+    1
+                                  7
+                             6
+                             6
+                                  7
+                                       8
+                             6
+                             6
+                                            9
+         2
+         2
+              3
+                        5
+                             6
+                        5
+                                       8
+                   4
+                             6
+              3
+              3
+    1
+              3
+    1
+              3
+         2
+              3
+                                            9
+                        5
+                             6
+         2
+                             6
+              3
+              3
+                                  7
+                   4
+                             6
+                                            9
+         2
+         2
+                             6
+                                            9
+                                  7
+              3
+                             6
+              3
+                                       8
+              3
+                        5
+    1
+              3
+                   4
+                                  7
+                                            9
+                                       8
+         2
+                   4
+                   4
+                   4
+         2
+                   4
+                                       8
+         2
+                                       8
+    1
+                             6
+                                  7
+                                            9
+                             6
+    1
+              3
+                        5
+              3
+         2
+                                  7
+                                       8
+                   4
+                        5
+                                            9
+                                       8
+              3
+                                            9
+                                  7
+              3
+         2
+                                       8
+                                       8
+                                  7
+         2
+         2
+                                            9
+                   4
+                             6
+                        5
+                             6
+         2
+                   4
+                                  7
+                        5
+                   4
+         2
+    1
+         2
+                        5
+              3
+                                       8
+    1
+                   4
+    1
+                                  7
+                                  7
+                                            9
+    1
+                                       8
+                             6
+                        5
+                                  7
+              3
+    1
+                                       8
+              3
+                             6
+                             6
+              3
+              3
+                        5
+                        5
+                                  7
+    1
+                                  7
+                                            9
+                                       8
+                   4
+                        5
+                                  7
+                                       8
+                        5
+                                  7
+                                            9
+         2
+                                            9
+              3
+                        5
+         2
+    1
+                                       8
+         2
+         2
+                             6
+                                       8
+                   4
+              3
+                             6
+         2
+                        5
+                                            9
+                        5
+                                            9
+                   4
+              3
+                   4
+    1
+                                       8
+              3
+                                            9
+                                  7
+              3
+                             6
+                        5
+              3
+                             6
+              3
+         2
+                                  7
+                                       8
+                        5
+                                  7
+              3
+                                            9
+                             6
+         2
+         2
+                        5
+                   4
+                                            9
+                             6
+                                  7
+                                            9
+                                       8
+                        5
+                   4
+                   4
+                        5
+              3
+                        5
+              3
+                             6
+                   4
+                             6
+                                       8
+              3
+                             6
+              3
+                   4
+                   4
+              3
+    1
+              3
+                        5
+                                  7
+                   4
+         2
+                   4
+                   4
+    1
+                                  7
+         2
+                                       8
+                        5
+                                            9
+              3
+                                       8
+    1
+                        5
+                             6
+                                            9
+              3
+                                       8
+                                  7
+    1
+                             6
+                                            9
+                             6
+                                  7
+    1
+                        5
+              3
+         2
+                             6
+                             6
+                                       8
+                                            9
+                                  7
+                                            9
+                                       8
+    1
+                                  7
+                                            9
+                                       8
+         2
+                             6
+                             6
+                   4
+                                       8
+                   4
+              3
+    1
+                                  7
+                                            9
+                                  7
+                                  7
+                             6
+                        5
+                                            9
+                                            9
+         2
+                                            9
+                                  7
+                                            9
+         2
+                                  7
+                                            9
+         2
+                        5
+                                  7
+                             6
+                                            9
+                                            9
+    1
+                   4
+                        5
+    1
+         2
+    1
+                                            9
+                             6
+                        5
+         2
+              3
+                   4
+                                       8
+                                  7
+                        5
+                                            9
+                   4
+                                            9
+Checking thread IDs...
+...done.
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+2,5d1
+<                    4
+<     1
+<                                        8
+<                    4
+7,10d2
+<               3
+<                              6
+<               3
+<                    4
+12d3
+<                    4
+16,21d6
+<                                   7
+<                    4
+<                    4
+<          2
+<               3
+<          2
+23,25d7
+<                                   7
+<                    4
+<               3
+27d8
+<     1
+29,31c10
+<                              6
+<                                   7
+<               3
+---
+>          2
+32a12
+>                                        8
+33a14
+>                                        8
+36d16
+<                         5
+38,41d17
+<                    4
+<                                        8
+<                              6
+<               3
+44,50d19
+<                         5
+<     1
+<                         5
+<     1
+<               3
+<                         5
+<                                        8
+52a22,24
+>     1
+>                                             9
+>                              6
+56c28,30
+<     1
+---
+>                                             9
+>                    4
+>                         5
+59c33,35
+<                              6
+---
+>          2
+>          2
+>                         5
+61,62c37,38
+<                                   7
+<                                   7
+---
+>                    4
+>                         5
+63a40,47
+>                                   7
+>                         5
+>          2
+>          2
+>          2
+>                    4
+>                                             9
+>                    4
+65a50,52
+>                    4
+>                                   7
+>                                             9
+67d53
+<                                        8
+69,74d54
+<                              6
+<                                        8
+<                                        8
+<                                        8
+<                                        8
+<                                        8
+76c56
+<                                   7
+---
+>                                             9
+79,80c59
+<          2
+<                                   7
+---
+>     1
+81a61,63
+>                                             9
+>                              6
+>                              6
+83a66,67
+>     1
+>                                             9
+85,89c69
+<               3
+<                              6
+<               3
+<                         5
+<                    4
+---
+>     1
+91,92d70
+<          2
+<                                        8
+95,96d72
+<                                        8
+<                                             9
+99,101c75,78
+<     1
+<               3
+<               3
+---
+>                                   7
+>                                             9
+>                              6
+>                                        8
+102a80
+>     1
+103a82,83
+>                    4
+>     1
+106c86
+<                                             9
+---
+>          2
+108c88
+<                                   7
+---
+>          2
+109a90
+>               3
+110a92,100
+>     1
+>                                   7
+>                              6
+>                              6
+>                                   7
+>                                        8
+>                              6
+>                              6
+>                                             9
+112d101
+<                    4
+114d102
+<                    4
+115a104,107
+>                         5
+>                              6
+>                         5
+>                                        8
+116a109,113
+>                              6
+>               3
+>               3
+>     1
+>               3
+117a115,121
+>               3
+>          2
+>               3
+>                                             9
+>                         5
+>                              6
+>          2
+119c123
+<                                   7
+---
+>               3
+123c127,136
+<                    4
+---
+>                              6
+>                                             9
+>          2
+>          2
+>                              6
+>                                             9
+>                                   7
+>               3
+>                              6
+>               3
+124a138
+>               3
+126d139
+<                                   7
+129c142
+<               3
+---
+>                    4
+131c144
+<     1
+---
+>                                             9
+132a146
+>          2
+134d147
+<                                   7
+136d148
+<                                             9
+138d149
+<                              6
+141c152,153
+<                         5
+---
+>                                        8
+>          2
+143a156,157
+>                              6
+>                                   7
+144a159,160
+>                              6
+>     1
+147,148d162
+<                         5
+<                         5
+149a164,167
+>          2
+>                                   7
+>                                        8
+>                    4
+151a170
+>                                        8
+154d172
+<          2
+155a174,176
+>               3
+>          2
+>                                        8
+157d177
+<     1
+159a180,181
+>          2
+>                                             9
+162,165d183
+<                    4
+<               3
+<                                        8
+<                                             9
+168,169c186
+<     1
+<                                             9
+---
+>          2
+171,172c188,189
+<     1
+<                                        8
+---
+>                                   7
+>                         5
+173a191,194
+>          2
+>     1
+>          2
+>                         5
+175,176d195
+<                                             9
+<                                             9
+178,179d196
+<               3
+<               3
+181c198,199
+<                         5
+---
+>                    4
+>     1
+183d200
+<                              6
+185,186c202,203
+<               3
+<                         5
+---
+>                                             9
+>     1
+189a207
+>                                   7
+191c209,210
+<          2
+---
+>     1
+>                                        8
+194,196c213,215
+<                    4
+<                                             9
+<          2
+---
+>                              6
+>               3
+>               3
+198,200c217,218
+<          2
+<                                        8
+<                                        8
+---
+>                         5
+>                                   7
+202,203d219
+<          2
+<                                             9
+205,208d220
+<                              6
+<                                        8
+<                    4
+<          2
+209a222
+>                                        8
+210a224
+>                         5
+212,216d225
+<                                   7
+<                    4
+<                    4
+<                              6
+<                              6
+217a227,229
+>                         5
+>                                   7
+>                                             9
+219,220d230
+<                                        8
+<     1
+221a232
+>               3
+223c234,235
+<                              6
+---
+>          2
+>     1
+225c237,238
+<                                             9
+---
+>          2
+>          2
+228,230d240
+<     1
+<               3
+<     1
+232d241
+<                              6
+233a243
+>                              6
+235,238c245
+<                                             9
+<               3
+<               3
+<                                   7
+---
+>                         5
+240a248
+>                                             9
+242d249
+<                                   7
+244,252d250
+<                              6
+<     1
+<                              6
+<     1
+<                         5
+<                    4
+<                         5
+<          2
+<                                             9
+256,261d253
+<                    4
+<                                   7
+<                              6
+<                    4
+<                                   7
+<                    4
+263d254
+<                                        8
+265,268d255
+<                              6
+<                                        8
+<                    4
+<     1
+271d257
+<               3
+274c260,263
+<     1
+---
+>               3
+>                              6
+>               3
+>          2
+277c266,268
+<     1
+---
+>                         5
+>                                   7
+>               3
+279a271,272
+>          2
+>          2
+281,282d273
+<                         5
+<                              6
+283a275
+>                                             9
+285,287d276
+<                    4
+<                                   7
+<                         5
+290,293c279
+<                    4
+<                                   7
+<                    4
+<                         5
+---
+>                                        8
+296d281
+<          2
+298,299d282
+<                              6
+<                                        8
+303,305d285
+<                         5
+<          2
+<                                        8
+307d286
+<                                             9
+309d287
+<     1
+311,312d288
+<                                             9
+<          2
+314,322d289
+<                                   7
+<     1
+<                    4
+<                                             9
+<                                        8
+<          2
+<                                   7
+<     1
+<                                   7
+324c291
+<          2
+---
+>               3
+325a293,294
+>               3
+>                    4
+328,336d296
+<                                   7
+<                                   7
+<                                             9
+<     1
+<                                        8
+<     1
+<                                             9
+<          2
+<                                        8
+338d297
+<                                             9
+340,343d298
+<                                   7
+<                                   7
+<                         5
+<                                             9
+344a300
+>                                   7
+347c303,304
+<                                        8
+---
+>                    4
+>                    4
+349,350d305
+<                                        8
+<                                        8
+352,359c307
+<                              6
+<     1
+<     1
+<               3
+<     1
+<                                        8
+<     1
+<               3
+---
+>          2
+361c309,310
+<     1
+---
+>                         5
+>                                             9
+363d311
+<                              6
+365d312
+<                                   7
+367,368d313
+<     1
+<          2
+371c316
+<          2
+---
+>                                             9
+373,374c318
+<          2
+<     1
+---
+>                                        8
+375a320
+>     1
+377,379d321
+<               3
+<                    4
+<                         5
+381d322
+<                                        8
+382a324
+>                                   7
+385,388d326
+<     1
+<                         5
+<                                   7
+<                                        8
+390,396d327
+<                         5
+<          2
+<                                        8
+<          2
+<                                             9
+<          2
+<                    4
+398c329,330
+<                         5
+---
+>                              6
+>                              6
+400d331
+<                         5
+404,408c335
+<                         5
+<                         5
+<                              6
+<                              6
+<                         5
+---
+>                                        8
+411d337
+<                                   7
+413,414d338
+<          2
+<     1
+416d339
+<                              6
+417a341,343
+>                              6
+>                              6
+>                    4
+419c345,346
+<                         5
+---
+>                    4
+>               3
+420a348
+>                                   7
+422c350,351
+<                                        8
+---
+>                                   7
+>                                   7
+425,434c354
+<                         5
+<                         5
+<          2
+<          2
+<          2
+<                              6
+<                              6
+<          2
+<                              6
+<          2
+---
+>                                             9
+438c358
+<                              6
+---
+>                                   7
+440,441d359
+<                              6
+<          2
+442a361
+>                                   7
+443a363,366
+>          2
+>                         5
+>                                   7
+>                              6
+445a369,374
+>     1
+>                    4
+>                         5
+>     1
+>          2
+>     1
+446a376,383
+>                              6
+>                         5
+>          2
+>               3
+>                    4
+>                                        8
+>                                   7
+>                         5
+448c385
+<                                             9
+---
+>                    4
+---------
+=================================================
+TEST 27: Tid2thread() returns NULL given a bad tid?
+
+This launches a single thread, then calls tid2thread with 
+a threadID that isn't it.  Tid2thread should return NULL.
+
+
+----------
+Reference:
+----------
+Starting LWPS.
+tid2thread() coped with a bad value.
+Back from LWPS.
+----------
+Submitted:
+----------
+Starting LWPS.
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+2,3d1
+< tid2thread() coped with a bad value.
+< Back from LWPS.
+---------
+=================================================
+TEST 28: Is thread library using sched_{one,two}?
+
+This launches a set of threads, then installs a scheduler that 
+intentionally places bogus values in sched_one and sched_two then 
+calls tid2thread() a bunch.
+
+
+
+----------
+Reference:
+----------
+Launching LWPS
+  1
+     2
+        3
+           4
+              5
+                 6
+                    7
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+        3
+           4
+              5
+                 6
+                    7
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+     2
+        3
+           4
+              5
+                 6
+                    7
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+           4
+              5
+                 6
+                    7
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+              5
+                 6
+                    7
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                 6
+                    7
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                    7
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                                                    18
+                                                       19
+                                                          20
+                                                       19
+                                                          20
+                                                          20
+Back from LWPS.
+----------
+Submitted:
+----------
+Launching LWPS
+  1
+     2
+        3
+           4
+              5
+                 6
+                    7
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+        3
+           4
+              5
+                 6
+                    7
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+     2
+        3
+           4
+              5
+                 6
+                    7
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+           4
+              5
+                 6
+                    7
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+              5
+                 6
+                    7
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                 6
+                    7
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                    7
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                       8
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                          9
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                            10
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                               11
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                                  12
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                                     13
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                                        14
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                                           15
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                                              16
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                                                 17
+                                                    18
+                                                       19
+                                                          20
+                                                    18
+                                                       19
+                                                          20
+                                                       19
+                                                          20
+                                                          20
+
+---------------------------------
+Differences (< reference > output)
+---------------------------------
+
+212d211
+< Back from LWPS.
+---------

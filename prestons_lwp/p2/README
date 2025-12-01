@@ -1,0 +1,32 @@
+Author: Preston Kearnan
+Note: I am attempting to become more professional with my coding documentation as I approach graduation, so here
+      is a well formatted README. 
+CPE 453 - Program 2: Lightweight Process Library
+
+DESCRIPTION:
+This project implements a user-level lightweight process (thread) library with
+cooperative multitasking. Threads are scheduled using round-robin scheduling
+and can create, yield, exit, and wait for other threads.
+
+IMPLEMENTATION NOTES:
+- Threads use mmap() for stack allocation (8MB default, aligned to page size)
+- Context switching via swap_rfiles() assembly function
+- Thread states managed via custom queues (blocked, zombie, global tracking)
+- Round-robin scheduling rotates through ready queue
+- Exit/wait coordination handles zombie threads and blocked waiters
+- Main thread is NOT admitted to scheduler after lwp_start()
+
+STATUS:
+All core functionality tested and working:
+- Thread creation with proper stack setup
+- Context switching (yield)
+- Thread termination (exit)
+- Thread reaping (wait)
+- Resource cleanup (munmap, free)
+- Round-robin scheduling
+
+EXECUTION:
+- "make" for simple makes
+- "make clean" for clean up
+- "make snakes" for snake test
+

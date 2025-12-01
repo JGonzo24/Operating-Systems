@@ -1,11 +1,14 @@
-#include "utils.h"
+#define _POSIX_C_SOURCE 200809L    /* must be before any #include */
+
+#include <unistd.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <unistd.h>
+
+#include "utils.h"
 
 void free_args(args_struct_t *args) {
   if (!args)
