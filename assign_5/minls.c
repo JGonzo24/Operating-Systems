@@ -14,7 +14,8 @@ int setup_partitions(fs_t *fs, minls_input_t *minls_struct)
   /* If no partition specified, we're done */
   if (minls_struct->part < 0)
   {
-    /* But wait - did they try to specify a subpartition without a partition? */
+    /* But wait - did they try to specify a subpartition without
+     * a partition? */
     if (minls_struct->subpart >= 0)
     {
       fprintf(stderr, "-s given without -p\n");

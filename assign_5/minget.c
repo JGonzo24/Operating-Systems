@@ -60,7 +60,8 @@ int setup_partitions(fs_t *fs, minget_input_t *mi)
  * Find the file we want and validate it's actually a regular file
  * Returns 0 on success, -1 on failure
  */
-int find_and_validate_file(fs_t *fs, minget_input_t *mi, inode_t *inode, uint32_t *inum)
+int find_and_validate_file(fs_t *fs, minget_input_t *mi,
+                           inode_t *inode, uint32_t *inum)
 {
   /* Try to find the file they asked for */
   if (fs_lookup_path(fs, mi->srcpath, inode, inum) != 0)
@@ -112,7 +113,8 @@ FILE *open_output_file(minget_input_t *mi)
  * Copy the file data to the output destination
  * Returns 0 on success, -1 on failure
  */
-int copy_file_data(fs_t *fs, inode_t *inode, FILE *out, const char *srcpath)
+int copy_file_data(fs_t *fs, inode_t *inode, FILE *out,
+                   const char *srcpath)
 {
   ssize_t written = fs_read_file(fs, inode, out);
   if (written < 0)
@@ -148,8 +150,8 @@ void cleanup_resources(fs_t *fs, args_struct_t *args, FILE *out)
  * minget:
  *   minget [ -v ] [ -p part [ -s subpart ] ] imagefile srcpath [ dstpath ]
  *
- * Copies the data from the given sourcepath to the desired destination path.
- * If there's no destination path given, then copy to stdout
+ * Copies the data from the given sourcepath to the desired destination
+ * path. If there's no destination path given, then copy to stdout
  */
 int main(int argc, char *argv[])
 {

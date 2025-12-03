@@ -66,7 +66,7 @@ int safe_fread(void *ptr, size_t size, size_t nitems, FILE *stream)
 /**
  * @brief Safe wrapper for malloc with error handling
  * @param size Number of bytes to allocate
- * @return Pointer to allocated memory, or NULL on failure (after printing error)
+ * @return Pointer to allocated memory, or NULL on failure
  */
 void *safe_malloc(size_t size)
 {
@@ -82,7 +82,7 @@ void *safe_malloc(size_t size)
  * @brief Safe wrapper for calloc with error handling
  * @param nmemb Number of elements
  * @param size Size of each element
- * @return Pointer to allocated memory, or NULL on failure (after printing error)
+ * @return Pointer to allocated memory, or NULL on failure
  */
 void *safe_calloc(size_t nmemb, size_t size)
 {
@@ -102,7 +102,9 @@ void *safe_calloc(size_t nmemb, size_t size)
  * @param error_context Context string for error messages
  * @return Pointer to allocated table, or NULL on failure
  */
-uint32_t *safe_read_zone_table(fs_t *fs, uint32_t zone_num, size_t table_bytes, const char *error_context)
+uint32_t *safe_read_zone_table(fs_t *fs, uint32_t zone_num,
+                               size_t table_bytes,
+                               const char *error_context)
 {
   uint32_t *table = safe_malloc(table_bytes);
   if (!table)
@@ -144,14 +146,17 @@ uint32_t *safe_read_zone_table(fs_t *fs, uint32_t zone_num, size_t table_bytes, 
  * @param state File read state
  * @return 0 on success, -1 on error
  */
-int process_zone_range(fs_t *fs, uint32_t *zones, size_t zone_count, FILE *out, file_read_state_t *state)
+int process_zone_range(fs_t *fs, uint32_t *zones, size_t zone_count,
+                       FILE *out, file_read_state_t *state)
 {
   size_t zone_bytes = fs_zone_bytes(fs);
 
   for (size_t i = 0; i < zone_count && state->remaining > 0; i++)
   {
-    uint32_t zone = zones ? zones[i] : 0; // 0 for holes when zones is NULL
-    size_t to_write = (state->remaining < zone_bytes) ? state->remaining : zone_bytes;
+    /* 0 for holes when zones is NULL */
+    uint32_t zone = zones ? zones[i] : 0;
+    size_t to_write = (state->remaining < zone_bytes) ?
+                      state->remaining : zone_bytes;
 
     if (process_data(fs, zone, to_write, out, state) < 0)
     {
@@ -283,7 +288,8 @@ void print_usage(char *prog_name, struct_type type)
  * @return 0 on success, EXIT_FAILURE on error
  */
 int process_common_options(char opt, char *optarg, char *prog_name,
-                           bool *verbose, int *part, int *subpart, struct_type type)
+                           bool *verbose, int *part, int *subpart,
+                           struct_type type)
 {
   switch (opt)
   {
@@ -359,7 +365,8 @@ int allocate_struct(args_struct_t *args, int argc, char *argv[])
 
     while ((opt = getopt(argc, argv, "hvp:s:")) != -1)
     {
-      if (process_common_options(opt, optarg, argv[0], &l->verbose, &l->part, &l->subpart, MINLS_TYPE) != 0)
+      if (process_common_options(opt, optarg, argv[0], &l->verbose,
+                                 &l->part, &l->subpart, MINLS_TYPE) != 0)
       {
         return EXIT_FAILURE;
       }
@@ -501,7 +508,7 @@ int select_partition_table(int index, fs_t *fs,
     fprintf(stderr, "Partition %d is not a Minix Partition!\n", index);
     return EXIT_FAILURE;
   }
-  /* Multiply by 512 to get from sectors-> bytes and calculate byte offset */
+  /* Multiply by 512 to get from sectors to bytes and calculate offset */
   fs->fs_start = (off_t)entry->lFirst * 512;
   return 0;
 }
@@ -512,7 +519,7 @@ int select_partition_table(int index, fs_t *fs,
  */
 int read_superblock(fs_t *fs)
 {
-  /* 1024 Byte offset from begninning of partition to get to the super block */
+  /* 1024 Byte offset from beginning of partition to get to superblock */
   off_t sb_offset = fs->fs_start + 1024;
   /* fseek to superblock */
   if (safe_fseeko(fs->img, sb_offset, SEEK_SET) != 0)
@@ -530,7 +537,8 @@ int read_superblock(fs_t *fs)
   if (fs->sb.magic != 0x4D5A)
   {
     fprintf(stderr,
-            "Bad magic number.(0x%04x)\n This doesn't look like MINIX FS.\n",
+            "Bad magic number.(0x%04x)\n"
+            " This doesn't look like MINIX FS.\n",
             (unsigned)fs->sb.magic);
     return EXIT_FAILURE;
   }
@@ -546,8 +554,9 @@ int fs_read_inode(fs_t *fs, uint32_t inum, inode_t *out)
   // Check Inode number
   if (inum < 1 || inum > fs->sb.ninodes)
   {
-    fprintf(stderr, "Invalid inode number: %u, not in range (1..%u)\n", inum,
-            fs->sb.ninodes);
+    fprintf(stderr,
+            "Invalid inode number: %u, not in range (1..%u)\n",
+            inum, fs->sb.ninodes);
     return -1;
   }
   // Get the starting block offset of the inode table
@@ -591,7 +600,8 @@ off_t zone_to_offset(fs_t *fs, uint32_t zone)
  * @brief
  *
  */
-int fs_read_directory(fs_t *fs, inode_t *dir_inode, minix_dir_entry *entries)
+int fs_read_directory(fs_t *fs, inode_t *dir_inode,
+                      minix_dir_entry *entries)
 {
   if (!inode_is_directory(dir_inode))
   {
@@ -644,7 +654,8 @@ int fs_read_directory(fs_t *fs, inode_t *dir_inode, minix_dir_entry *entries)
       off_t off = zone_to_offset(fs, dir_inode->indirect);
       if (off < 0)
       {
-        fprintf(stderr, "Invalid dir indirect zone %u\n", dir_inode->indirect);
+        fprintf(stderr, "Invalid dir indirect zone %u\n",
+                dir_inode->indirect);
         error = true;
       }
       else if (fseeko(fs->img, off, SEEK_SET) != 0)
@@ -837,7 +848,7 @@ int fs_lookup_path(fs_t *fs, const char *path, inode_t *out_inode,
 }
 
 /**
- * @brief Checks Mode type and compares to see if the inode contains a directory
+ * @brief Checks Mode type and compares to see if the inode is a directory
  */
 int inode_is_directory(inode_t *inode)
 {
@@ -846,8 +857,8 @@ int inode_is_directory(inode_t *inode)
 }
 
 void dir_process_zone(fs_t *fs, uint32_t zone, unsigned char *raw,
-                      size_t zone_bytes, uint32_t *remaining, size_t *buf_pos,
-                      bool *error)
+                      size_t zone_bytes, uint32_t *remaining,
+                      size_t *buf_pos, bool *error)
 {
   if (*error || *remaining == 0)
     return;
@@ -1004,7 +1015,8 @@ int read_single_indirect(fs_t *fs, inode_t *inode, FILE *out,
 
   // ---------- REAL single-indirect zone ------- //
   size_t table_bytes = fs->sb.blocksize;
-  uint32_t *table = safe_read_zone_table(fs, inode->indirect, table_bytes, "single-indirect");
+  uint32_t *table = safe_read_zone_table(fs, inode->indirect,
+                                         table_bytes, "single-indirect");
   if (!table)
   {
     return -1;
@@ -1041,7 +1053,9 @@ int read_double_indirect(fs_t *fs, const inode_t *inode, FILE *out,
 
   /* --------- Real double-indirect --------- */
   size_t table_bytes = fs->sb.blocksize;
-  uint32_t *outer = safe_read_zone_table(fs, inode->two_indirect, table_bytes, "double-indirect outer");
+  uint32_t *outer = safe_read_zone_table(fs, inode->two_indirect,
+                                         table_bytes,
+                                         "double-indirect outer");
   if (!outer)
   {
     return -1;
@@ -1062,7 +1076,9 @@ int read_double_indirect(fs_t *fs, const inode_t *inode, FILE *out,
       continue;
     }
 
-    uint32_t *inner = safe_read_zone_table(fs, first_level_zone, table_bytes, "double-indirect inner");
+    uint32_t *inner = safe_read_zone_table(fs, first_level_zone,
+                                           table_bytes,
+                                           "double-indirect inner");
     if (!inner)
     {
       free(outer);
