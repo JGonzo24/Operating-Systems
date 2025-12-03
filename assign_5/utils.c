@@ -408,7 +408,7 @@ int allocate_struct(args_struct_t *args, int argc, char *argv[])
  *
  * @param path The path for the file system image
  */
-FILE *open_img(char *path)
+FILE *open_img(const char *path)
 {
   FILE *f = fopen(path, "r");
   if (f == NULL)
@@ -426,7 +426,7 @@ FILE *open_img(char *path)
  * the image as well as the offset for the struct
  * @param path The path to the image to be opened
  */
-fs_t fs_open(char *path)
+fs_t fs_open(const char *path)
 {
   fs_t fs;
   fs.img = open_img(path);
