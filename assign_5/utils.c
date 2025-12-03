@@ -13,7 +13,7 @@
 
 /**
  *
- * We log to stderr.
+ * Log to stderr.
  *
  * @param label: the name of the program being ran
  * @param verbose: bool stating whether to print or not
@@ -49,13 +49,13 @@ int safe_fseeko(FILE *stream, off_t offset, int whence)
  * @brief Safe wrapper for fread with error handling
  * @param ptr Pointer to buffer to read into
  * @param size Size of each element
- * @param nitems Number of elements to read
+ * @param bytes_to_read Number of bytes to read
  * @param stream File stream to read from
  * @return 0 on success, EXIT_FAILURE on error
  */
-int safe_fread(void *ptr, size_t size, size_t nitems, FILE *stream)
+int safe_fread(void *ptr, size_t size, size_t bytes_to_read, FILE *stream)
 {
-  if (fread(ptr, size, nitems, stream) != nitems)
+  if (fread(ptr, size, bytes_to_read, stream) != bytes_to_read)
   {
     perror("fread");
     return EXIT_FAILURE;
@@ -80,13 +80,13 @@ void *safe_malloc(size_t size)
 
 /**
  * @brief Safe wrapper for calloc with error handling
- * @param nmemb Number of elements
- * @param size Size of each element
+ * @param num_blocks Number of blocks to allocate
+ * @param size Size of each block
  * @return Pointer to allocated memory, or NULL on failure
  */
-void *safe_calloc(size_t nmemb, size_t size)
+void *safe_calloc(size_t num_blocks, size_t size)
 {
-  void *ptr = calloc(nmemb, size);
+  void *ptr = calloc(num_blocks, size);
   if (!ptr)
   {
     perror("calloc");
@@ -133,7 +133,6 @@ uint32_t *safe_read_zone_table(fs_t *fs, uint32_t zone_num,
     free(table);
     return NULL;
   }
-
   return table;
 }
 
@@ -141,22 +140,21 @@ uint32_t *safe_read_zone_table(fs_t *fs, uint32_t zone_num,
  * @brief Process a range of zones, handling holes appropriately
  * @param fs File system pointer
  * @param zones Array of zone numbers (NULL for hole processing)
- * @param zone_count Number of zones to process
+ * @param num_zones Number of zones to process
  * @param out Output file
  * @param state File read state
  * @return 0 on success, -1 on error
  */
-int process_zone_range(fs_t *fs, uint32_t *zones, size_t zone_count,
+int process_zone_range(fs_t *fs, uint32_t *zones, size_t num_zones,
                        FILE *out, file_read_state_t *state)
 {
   size_t zone_bytes = fs_zone_bytes(fs);
 
-  for (size_t i = 0; i < zone_count && state->remaining > 0; i++)
+  for (size_t i = 0; i < num_zones && state->remaining > 0; i++)
   {
     /* 0 for holes when zones is NULL */
     uint32_t zone = zones ? zones[i] : 0;
-    size_t to_write = (state->remaining < zone_bytes) ?
-                      state->remaining : zone_bytes;
+    size_t to_write = (state->remaining < zone_bytes) ? state->remaining : zone_bytes;
 
     if (process_data(fs, zone, to_write, out, state) < 0)
     {
@@ -423,7 +421,7 @@ FILE *open_img(const char *path)
  * @brief Opens the file system and initializes its members
  *
  * Instantiates a filesystem struct and populates it with
- * the image as well as the offset for the struct
+ * the image as well as the offset for the struct.
  * @param path The path to the image to be opened
  */
 fs_t fs_open(const char *path)
@@ -465,7 +463,7 @@ int read_partition_table(fs_t *fs, off_t offset,
   {
     return EXIT_FAILURE;
   }
-  /* Ensure that the partition table contains the right signature */
+  /* Check MBR signature (bytes 510-511 = 0x55AA) */
   if (sector[510] != 0x55 || sector[511] != 0xAA)
   {
     fprintf(stderr, "Invalid partition table signature!");
@@ -516,6 +514,7 @@ int select_partition_table(int index, fs_t *fs,
 /**
  * @brief Reads the super block to ensure correct File System
  * @param fs Filesystem struct pointer
+ * @return EXIT_FAILURE on error, EXIT_SUCCESS on success
  */
 int read_superblock(fs_t *fs)
 {
@@ -548,10 +547,11 @@ int read_superblock(fs_t *fs)
 /**
  * @brief Calculates inode offset, populates inode struct
  *
+ *
  */
 int fs_read_inode(fs_t *fs, uint32_t inum, inode_t *out)
 {
-  // Check Inode number
+  /* Check Inode number */
   if (inum < 1 || inum > fs->sb.ninodes)
   {
     fprintf(stderr,
@@ -559,10 +559,11 @@ int fs_read_inode(fs_t *fs, uint32_t inum, inode_t *out)
             inum, fs->sb.ninodes);
     return -1;
   }
-  // Get the starting block offset of the inode table
+  /* Get the starting block offset of the inode table */
+  /* Layout: [boot][super][inode_bitmap][zone_bitmap][inode_table] */
   off_t inode_table_block = 2 + fs->sb.i_blocks + fs->sb.z_blocks;
 
-  // Compute byte offset of the requested inode
+  /* Compute byte offset of the requested inode */
   off_t inode_offset = fs->fs_start +
                        inode_table_block * (off_t)fs->sb.blocksize +
                        (inum - 1) * (off_t)INODE_SIZE;
@@ -581,8 +582,13 @@ int fs_read_inode(fs_t *fs, uint32_t inum, inode_t *out)
 /**
  * @brief Calculates the offset based on the desired zone
  *
- * @param fs Pointer to fs to be used for the zone size
- * @param zone Used to calculate the block index
+ * Takes a zone number and figures out where that zone starts in the
+ * filesystem image. If Zone == 0, then it is a hole in the filesystem,
+ * do nothing. Otherwise convert zone number to byte offset.
+ *
+ * @param fs Pointer to filesystem struct (for zone size info)
+ * @param zone Zone number to calculate offset for
+ * @return Byte offset of the zone, or -1 for holes/invalid zones
  */
 off_t zone_to_offset(fs_t *fs, uint32_t zone)
 {
@@ -591,14 +597,23 @@ off_t zone_to_offset(fs_t *fs, uint32_t zone)
     return -1;
   }
 
+  /* Zone size = blocksize * 2^log_zone_size */
   int blocks_per_zone = 1 << fs->sb.log_zone_size;
   off_t block_index = (off_t)zone * blocks_per_zone;
   return fs->fs_start + block_index * (off_t)fs->sb.blocksize;
 }
 
 /**
- * @brief
+ * @brief Reads directory entries from a directory inode
  *
+ * Takes a directory inode and reads all its entries into an array.
+ * Has to handle direct zones and indirect zones, plus deal with holes.
+ * The directory data gets parsed into proper directory entry structs.
+ *
+ * @param fs Pointer to the filesystem struct
+ * @param dir_inode Pointer to the directory's inode
+ * @param entries Array to store the directory entries in
+ * @return Number of entries found, or -1 on error
  */
 int fs_read_directory(fs_t *fs, inode_t *dir_inode,
                       minix_dir_entry *entries)
@@ -621,7 +636,7 @@ int fs_read_directory(fs_t *fs, inode_t *dir_inode,
   int blocks_per_zone = 1 << fs->sb.log_zone_size;
   size_t zone_bytes = fs->sb.blocksize * blocks_per_zone;
 
-  /* Allocate the an inode amount of bytes */
+  /* Allocate an inode amount of bytes */
   unsigned char *raw = safe_malloc(remaining);
   if (!raw)
   {
@@ -642,7 +657,7 @@ int fs_read_directory(fs_t *fs, inode_t *dir_inode,
   if (!error && remaining > 0 && dir_inode->indirect != 0)
   {
     size_t zone_bytes = fs_zone_bytes(fs);
-    size_t ptrs = fs_ptrs_per_block(fs);
+    size_t num_ptrs = fs_ptrs_per_block(fs);
 
     uint32_t *table = safe_malloc(zone_bytes);
     if (!table)
@@ -670,7 +685,7 @@ int fs_read_directory(fs_t *fs, inode_t *dir_inode,
       }
       else
       {
-        for (size_t i = 0; i < ptrs && remaining > 0 && !error; i++)
+        for (size_t i = 0; i < num_ptrs && remaining > 0 && !error; i++)
         {
           uint32_t z = table[i];
           dir_process_zone(fs, z, raw, zone_bytes, &remaining, &buf_pos,
@@ -688,17 +703,17 @@ int fs_read_directory(fs_t *fs, inode_t *dir_inode,
   }
 
   /* ===== Parse raw bytes into directory entries ===== */
-  int n_entries = dir_inode->size / DIR_ENTRY_SIZE;
+  int n_entries = dir_inode->size / DIR_ENTRY_SIZE; /* Max possible entries */
   int out_count = 0;
 
   for (int i = 0; i < n_entries; i++)
   {
     minix_dir_entry *de = (minix_dir_entry *)(raw + i * DIR_ENTRY_SIZE);
 
-    if (de->inode == 0)
+    if (de->inode == 0) /* Skip deleted entries */
       continue;
 
-    entries[out_count++] = *de;
+    entries[out_count++] = *de; /* Copy valid entry */
   }
 
   free(raw);
@@ -707,12 +722,19 @@ int fs_read_directory(fs_t *fs, inode_t *dir_inode,
 
 /**
  * @brief Based on the mode, makes a string to be printed
+ *
+ * Converts the unix file mode bits into a human readable string.
+ * First character shows file type (d for directory,
+ * - for regular file), then 9 characters for read/write/execute permissions.
+ *
+ * @param mode The file mode bits from the inode
+ * @param out Array to store the 11-character permissions array
  */
 void mode_to_string(uint16_t mode, char out[11])
 {
   uint16_t type = mode & 0170000;
 
-  out[0] = (type == 0040000) ? 'd' : '-'; // dir or regular/other
+  out[0] = (type == 0040000) ? 'd' : '-'; /* dir or regular/other */
 
   out[1] = (mode & 0400) ? 'r' : '-';
   out[2] = (mode & 0200) ? 'w' : '-';
@@ -729,17 +751,30 @@ void mode_to_string(uint16_t mode, char out[11])
   out[10] = '\0';
 }
 
+/**
+ * @brief Looks up a file or directory by path in the filesystem
+ *
+ * Takes a path and walks through the directory structure to find the
+ * corresponding inode. Handles the root directory, then tokenizes the
+ * path and looks up each component.
+ *
+ * @param fs Pointer to the filesystem struct
+ * @param path Path to look up (can be relative or absolute)
+ * @param out_inode Pointer to store the resulting inode
+ * @param out_inum Pointer to store the resulting inode number
+ * @return 0 on success, -1 if path not found
+ */
 int fs_lookup_path(fs_t *fs, const char *path, inode_t *out_inode,
                    uint32_t *out_inum)
 {
-  // Special case: root or empty path -> inode 1
+  /* Special case: root or empty path -> inode 1 */
   if (!path || path[0] == '\0' || (strcmp(path, "/") == 0))
   {
     if (fs_read_inode(fs, 1, out_inode) != 0)
     {
       return -1;
     }
-    // INUMs start at 1
+    /* INUMs start at 1 */
     if (out_inum)
     {
       *out_inum = 1;
@@ -747,7 +782,7 @@ int fs_lookup_path(fs_t *fs, const char *path, inode_t *out_inode,
     return 0;
   }
 
-  // Duplicate the path as we are going to tokenize
+  /* Duplicate the path as we are going to tokenize */
   char *dup = strdup(path);
   if (!dup)
   {
@@ -755,7 +790,7 @@ int fs_lookup_path(fs_t *fs, const char *path, inode_t *out_inode,
     return -1;
   }
 
-  // Gets the current inode
+  /* Gets the current inode */
   inode_t curr;
   if (fs_read_inode(fs, 1, &curr) != 0)
   {
@@ -766,33 +801,35 @@ int fs_lookup_path(fs_t *fs, const char *path, inode_t *out_inode,
 
   char *p = dup;
 
-  // Skip leading slashes
+  /* Skip leading slashes */
   while (*p == '/')
   {
     p++;
   }
-  // Tokenize the path, obtaining characters between '/'
+  /* Tokenize the path, obtaining characters between '/' */
   char *token = strtok(p, "/");
 
   while (token != NULL)
   {
-    // Current must be a directory to descend further
+    /* Current must be a directory to descend further */
     if (!inode_is_directory(&curr))
     {
       free(dup);
       return -1;
     }
 
-    int max = curr.size / DIR_ENTRY_SIZE;
-    minix_dir_entry *entries = safe_malloc(max * sizeof(*entries));
+    /* Calculate the total amount of possible entires */
+    int max_entries = curr.size / DIR_ENTRY_SIZE;
+    minix_dir_entry *entries = safe_malloc(max_entries * sizeof(*entries));
     if (!entries)
     {
       free(dup);
       return -1;
     }
 
-    int count = fs_read_directory(fs, &curr, entries);
-    if (count < 0)
+    /* Get the total amount of actual entries */
+    int num_entries = fs_read_directory(fs, &curr, entries);
+    if (num_entries < 0)
     {
       free(entries);
       free(dup);
@@ -800,10 +837,11 @@ int fs_lookup_path(fs_t *fs, const char *path, inode_t *out_inode,
     }
 
     uint32_t next_inum = 0;
-    for (int i = 0; i < count; i++)
+    /* Search for matching filename in directory */
+    for (int i = 0; i < num_entries; i++)
     {
       char name_buf[61];
-      memcpy(name_buf, entries[i].name, 60);
+      memcpy(name_buf, entries[i].name, 60); /* Ensure null termination */
       name_buf[60] = '\0';
 
       if (strcmp(name_buf, token) == 0)
@@ -817,11 +855,12 @@ int fs_lookup_path(fs_t *fs, const char *path, inode_t *out_inode,
 
     if (next_inum == 0)
     {
-      // component not found in this directory
+      /* Component not found in this directory */
       free(dup);
       return -1;
     }
 
+    /* Read the inode into curr from the file system and inode number */
     if (fs_read_inode(fs, next_inum, &curr) != 0)
     {
       free(dup);
@@ -832,18 +871,19 @@ int fs_lookup_path(fs_t *fs, const char *path, inode_t *out_inode,
     token = strtok(NULL, "/");
   }
 
-  // Done walking the path
+  /* Done walking the path */
   free(dup);
 
   if (out_inode)
   {
-    *out_inode = curr; // copy final inode struct out
+    /* Copy final inode struct out */
+    *out_inode = curr;
   }
   if (out_inum)
   {
-    *out_inum = current_inum; // and its inode number
+    /* Along with its inode number */
+    *out_inum = current_inum;
   }
-
   return 0;
 }
 
@@ -856,6 +896,16 @@ int inode_is_directory(inode_t *inode)
   return (type == 0040000);
 }
 
+/**
+ * @brief Processes a single zone when reading directory contents
+ * @param fs Filesystem structure pointer
+ * @param zone Zone number to process
+ * @param raw Buffer to write directory data
+ * @param zone_bytes Size of each zone in bytes
+ * @param remaining Pointer to remaining bytes to read
+ * @param buf_pos Pointer to current buffer position
+ * @param error Pointer to error flag
+ */
 void dir_process_zone(fs_t *fs, uint32_t zone, unsigned char *raw,
                       size_t zone_bytes, uint32_t *remaining,
                       size_t *buf_pos, bool *error)
@@ -867,7 +917,7 @@ void dir_process_zone(fs_t *fs, uint32_t zone, unsigned char *raw,
 
   if (zone == 0)
   {
-    // Hole: fill this part of the directory with zeros
+    /* Hole: fill this part of the directory with zeros */
     memset(raw + *buf_pos, 0, to_copy);
   }
   else
@@ -914,6 +964,15 @@ size_t fs_ptrs_per_block(fs_t *fs)
   return fs->sb.blocksize / sizeof(uint32_t);
 }
 
+/**
+ * @brief Processes data from a zone and writes it to output file
+ * @param fs Filesystem structure pointer
+ * @param zone Zone number to process
+ * @param to_write Number of bytes to write
+ * @param out Output file pointer
+ * @param state File reading state structure
+ * @return 0 on success, -1 on error
+ */
 int process_data(fs_t *fs, uint32_t zone, size_t to_write, FILE *out,
                  file_read_state_t *state)
 {
@@ -949,7 +1008,7 @@ int process_data(fs_t *fs, uint32_t zone, size_t to_write, FILE *out,
     }
   }
 
-  /* Single loop: handle hole vs real zone *inside* */
+  /* Process data in chunks up to blocksize */
   while (to_write > 0)
   {
     size_t chunk = (to_write < buf_size) ? to_write : buf_size;
@@ -980,40 +1039,50 @@ int process_data(fs_t *fs, uint32_t zone, size_t to_write, FILE *out,
     state->remaining -= chunk;
     state->total_written += chunk;
   }
-
   return 0;
 }
 
 /**
- * @brief Gets the zone from the inode, processes its data
- *
- *
- *
+ * @brief Gets the zones from the inode and processes their data
+ * @param fs Filesystem structure pointer
+ * @param inode Inode containing direct zones
+ * @param out Output file pointer
+ * @param state File reading state structure
+ * @return 0 on success, -1 on error
  */
 int read_direct_zones(fs_t *fs, inode_t *inode, FILE *out,
                       file_read_state_t *state)
 {
-  // Process all direct zones using the helper function
+  /* Process all direct zones using the helper function */
   return process_zone_range(fs, inode->zone, DIRECT_ZONES, out, state);
 }
 
+/**
+ * @brief Reads file data through single indirect zone pointer
+ * @param fs Filesystem structure pointer
+ * @param inode Inode containing single indirect zone
+ * @param out Output file pointer
+ * @param state File reading state structure
+ * @return 0 on success, -1 on error
+ */
 int read_single_indirect(fs_t *fs, inode_t *inode, FILE *out,
                          file_read_state_t *state)
 {
   if (state->remaining == 0)
   {
-    return 0; // Nothing to read!
+    /* Nothing to read! */
+    return 0;
   }
 
-  size_t ptrs = fs_ptrs_per_block(fs);
+  size_t num_ptrs = fs_ptrs_per_block(fs);
 
-  // ------------------ Holes -----------------//
+  /* ------------------ Holes ----------------- */
   if (inode->indirect == 0)
   {
-    return process_zone_range(fs, NULL, ptrs, out, state);
+    return process_zone_range(fs, NULL, num_ptrs, out, state);
   }
 
-  // ---------- REAL single-indirect zone ------- //
+  /* ---------- REAL single-indirect zone ------- */
   size_t table_bytes = fs->sb.blocksize;
   uint32_t *table = safe_read_zone_table(fs, inode->indirect,
                                          table_bytes, "single-indirect");
@@ -1022,12 +1091,20 @@ int read_single_indirect(fs_t *fs, inode_t *inode, FILE *out,
     return -1;
   }
 
-  // Now iterate through the pointers in the table and write to the outfile
-  int result = process_zone_range(fs, table, ptrs, out, state);
+  /* Now iterate through the pointers in the table and write to the outfile */
+  int result = process_zone_range(fs, table, num_ptrs, out, state);
   free(table);
   return result;
 }
 
+/**
+ * @brief Reads file data through double indirect zone pointer
+ * @param fs Filesystem structure pointer
+ * @param inode Inode containing double indirect zone
+ * @param out Output file pointer
+ * @param state File reading state structure
+ * @return 0 on success, -1 on error
+ */
 int read_double_indirect(fs_t *fs, const inode_t *inode, FILE *out,
                          file_read_state_t *state)
 {
@@ -1036,14 +1113,14 @@ int read_double_indirect(fs_t *fs, const inode_t *inode, FILE *out,
     return 0;
   }
 
-  size_t ptrs = fs_ptrs_per_block(fs);
+  size_t num_ptrs = fs_ptrs_per_block(fs);
 
   /* --------- No double-indirect zone: entire region is holes --------- */
   if (inode->two_indirect == 0)
   {
-    for (size_t i = 0; i < ptrs && state->remaining > 0; i++)
+    for (size_t i = 0; i < num_ptrs && state->remaining > 0; i++)
     {
-      if (process_zone_range(fs, NULL, ptrs, out, state) < 0)
+      if (process_zone_range(fs, NULL, num_ptrs, out, state) < 0)
       {
         return -1;
       }
@@ -1061,14 +1138,15 @@ int read_double_indirect(fs_t *fs, const inode_t *inode, FILE *out,
     return -1;
   }
 
-  for (size_t i = 0; i < ptrs && state->remaining > 0; i++)
+  /* Process each pointer in outer table */
+  for (size_t i = 0; i < num_ptrs && state->remaining > 0; i++)
   {
     uint32_t first_level_zone = outer[i];
 
     if (first_level_zone == 0)
     {
-      /* This whole chunk (ptrs data zones) is holes. */
-      if (process_zone_range(fs, NULL, ptrs, out, state) < 0)
+      /* This whole chunk (num_ptrs data zones) is holes */
+      if (process_zone_range(fs, NULL, num_ptrs, out, state) < 0)
       {
         free(outer);
         return -1;
@@ -1085,20 +1163,25 @@ int read_double_indirect(fs_t *fs, const inode_t *inode, FILE *out,
       return -1;
     }
 
-    if (process_zone_range(fs, inner, ptrs, out, state) < 0)
+    if (process_zone_range(fs, inner, num_ptrs, out, state) < 0)
     {
       free(inner);
       free(outer);
       return -1;
     }
-
     free(inner);
   }
-
   free(outer);
   return 0;
 }
 
+/**
+ * @brief Reads entire file content from inode to output stream
+ * @param fs Filesystem structure pointer
+ * @param inode Inode of the file to read
+ * @param out Output file stream
+ * @return Number of bytes written on success, -1 on error
+ */
 ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out)
 {
   file_read_state_t st = {
@@ -1137,12 +1220,23 @@ ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out)
   return (ssize_t)st.total_written;
 }
 
+/**
+ * @brief Checks if an inode represents a regular file
+ * @param inode Inode structure to check
+ * @return 1 if regular file, 0 otherwise
+ */
 int inode_is_regular(inode_t *inode)
 {
   uint16_t type = inode->mode & 0170000;
-  return (type == 0100000); // regular file
+  return (type == 0100000); /* regular file */
 }
 
+/**
+ * @brief Prints superblock information for debugging
+ * @param fs Filesystem structure pointer
+ * @param label Label for debug output
+ * @param verbose Whether to print verbose output
+ */
 void print_superblock(fs_t *fs, char *label, bool verbose)
 {
   LOG(label, verbose, "Superblock:");
@@ -1158,6 +1252,13 @@ void print_superblock(fs_t *fs, char *label, bool verbose)
   LOG(label, verbose, "  subversion    = %u", fs->sb.subversion);
 }
 
+/**
+ * @brief Prints inode information for debugging
+ * @param inode Inode structure to print
+ * @param inum Inode number
+ * @param label Label for debug output
+ * @param verbose Whether to print verbose output
+ */
 void print_inode(inode_t *inode, uint32_t inum,
                  char *label, bool verbose)
 {
@@ -1180,6 +1281,13 @@ void print_inode(inode_t *inode, uint32_t inum,
   LOG(label, verbose, "  two_indirect  = %u", inode->two_indirect);
 }
 
+/**
+ * @brief Prints partition table entry information for debugging
+ * @param p Partition table entry to print
+ * @param idx Partition index number
+ * @param label Label for debug output
+ * @param verbose Whether to print verbose output
+ */
 void print_part(partition_table_entry_t *p, int idx,
                 char *label, bool verbose)
 {

@@ -3,19 +3,25 @@
 #include <stdlib.h>
 #include <string.h>
 
-/*
- * Handle partition setup - primary and subpartition if needed
- * Returns 0 on success, -1 on failure
+/**
+ * @brief Handles partition setup,primary and subpartition if needed
+ *
+ * Sets up the filesystem to point to the right partition if the user
+ * specified one. Reads partition tables, shows info if verbose, and
+ * selects the requested partition. 
+ *
+ * @param fs Pointer to the filesystem struct to modify
+ * @param minls_struct Minls input struct containing partition info
+ * @return 0 on success, -1 on failure
  */
 int setup_partitions(fs_t *fs, minls_input_t *minls_struct)
 {
   partition_table_entry_t parts[4];
 
-  /* If no partition specified, we're done */
+  /* If no partition specified, done */
   if (minls_struct->part < 0)
   {
-    /* But wait - did they try to specify a subpartition without
-     * a partition? */
+    /* Specifying subpartition without main partition */
     if (minls_struct->subpart >= 0)
     {
       fprintf(stderr, "-s given without -p\n");
@@ -31,20 +37,20 @@ int setup_partitions(fs_t *fs, minls_input_t *minls_struct)
     return -1;
   }
 
-  /* Show partition info if we're being verbose */
+  /* Show partition info if verbose flag set */
   for (int i = 0; i < 4; i++)
   {
     print_part(&parts[i], i, "minls", minls_struct->verbose);
   }
 
-  /* Select the partition they want */
+  /* Select the partition */
   if (select_partition_table(minls_struct->part, fs, parts) != 0)
   {
     fprintf(stderr, "Error in select_primary_partition()!\n");
     return -1;
   }
 
-  /* Handle subpartition if they specified one */
+  /* Handle subpartition */
   if (minls_struct->subpart >= 0)
   {
     partition_table_entry_t subparts[4];
@@ -59,12 +65,16 @@ int setup_partitions(fs_t *fs, minls_input_t *minls_struct)
       return -1;
     }
   }
-
   return 0;
 }
 
-/*
- * Print the directory header with proper formatting
+/**
+ * @brief Print the directory header with proper formatting
+ *
+ * Shows the directory name before listing its contents. If no path
+ * given, then specify "/:". 
+ *
+ * @param path The directory path to show in the header
  */
 void print_directory_header(const char *path)
 {
@@ -85,9 +95,16 @@ void print_directory_header(const char *path)
   }
 }
 
-/*
- * List all entries in a directory
- * Returns 0 on success, -1 on failure
+/**
+ * @brief List all entries in a directory
+ *
+ * Reads all the directory entries and prints them out with their
+ * permissions, size, and name. 
+ *
+ * @param fs Pointer to the filesystem struct
+ * @param dir_inode Pointer to the directory's inode
+ * @param path Directory path used for the header
+ * @return 0 on success, -1 on failure
  */
 int list_directory_contents(fs_t *fs, inode_t *dir_inode, const char *path)
 {
@@ -124,13 +141,18 @@ int list_directory_contents(fs_t *fs, inode_t *dir_inode, const char *path)
     mode_to_string(child.mode, perm);
     printf("%s %u %s\n", perm, child.size, entries[i].name);
   }
-
   free(entries);
   return 0;
 }
 
-/*
- * Print info for a single file (not a directory)
+/**
+ * @brief Print info for a single file 
+ *
+ * Shows the file's permissions, size, and name. Used when the path
+ * given points to a regular file instead of a directory.
+ *
+ * @param file_inode Pointer to the file's inode
+ * @param path File path to display
  */
 void print_file_info(inode_t *file_inode, const char *path)
 {
@@ -147,8 +169,14 @@ void print_file_info(inode_t *file_inode, const char *path)
   printf("%s %u %s\n", perm, file_inode->size, name);
 }
 
-/*
- * Clean up resources and close files
+/**
+ * @brief Clean up resources and close files
+ *
+ * Makes sure we properly close the filesystem image and free any
+ * memory we allocated. Called at the end of program or on error.
+ *
+ * @param fs Pointer to filesystem struct (or NULL)
+ * @param args Pointer to arguments struct (or NULL)
  */
 void cleanup_resources(fs_t *fs, args_struct_t *args)
 {
@@ -163,12 +191,17 @@ void cleanup_resources(fs_t *fs, args_struct_t *args)
   }
 }
 
-/*
- * minls:
- *   minls [ -v ] [ -p part [ -s subpart ] ] imagefile [ path ]
+/**
+ * @brief Main function for minls
+ *
+ * minls [ -v ] [ -p part [ -s subpart ] ] imagefile [ path ]
  *
  * Lists the contents of a directory in the minix filesystem, or shows
- * info about a single file if the path points to a file.
+ * info about a single file if the path points to a file. 
+ *
+ * @param argc Number of command line arguments
+ * @param argv Array of command line argument strings
+ * @return EXIT_SUCCESS on success, EXIT_FAILURE on failure
  */
 int main(int argc, char *argv[])
 {
@@ -196,7 +229,7 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
-  /* Read the superblock so we understand the filesystem */
+  /* Read the superblock into file system struct */
   if (read_superblock(&fs) != 0)
   {
     fprintf(stderr, "Error in read_superblock() !\n");
@@ -204,10 +237,10 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
-  /* Show superblock info if we're being verbose */
+  /* Show superblock info if verbose flag set */
   print_superblock(&fs, "minls", minls_struct->verbose);
 
-  /* Find the path they want to look at */
+  /* Find the path */
   inode_t target;
   uint32_t target_inum;
   if (fs_lookup_path(&fs, minls_struct->path, &target, &target_inum) != 0)
@@ -217,10 +250,10 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
-  /* Show inode info if we're being verbose */
+  /* Show inode info if verbose flag set */
   print_inode(&target, target_inum, "minls", minls_struct->verbose);
 
-  /* Handle directories vs regular files differently */
+  /* Handle directories and regular files */
   if (inode_is_directory(&target))
   {
     if (list_directory_contents(&fs, &target, minls_struct->path) != 0)
@@ -233,7 +266,6 @@ int main(int argc, char *argv[])
   {
     print_file_info(&target, minls_struct->path);
   }
-
   cleanup_resources(&fs, args);
   return EXIT_SUCCESS;
 }

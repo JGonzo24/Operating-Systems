@@ -137,16 +137,13 @@ int allocate_struct(args_struct_t *, int argc, char *argv[]);
 void free_args(args_struct_t *args);
 void print_usage(char *prog_name, struct_type type);
 int process_common_options(char opt, char *optarg, char *prog_name,
-                           bool *verbose, int *part, int *subpart, 
-			   struct_type type);
+                           bool *verbose, int *part, int *subpart, struct_type type);
 int safe_fseeko(FILE *stream, off_t offset, int whence);
-int safe_fread(void *ptr, size_t size, size_t nitems, FILE *stream);
+int safe_fread(void *ptr, size_t size, size_t bytes_to_read, FILE *stream);
 void *safe_malloc(size_t size);
-void *safe_calloc(size_t nmemb, size_t size);
-uint32_t *safe_read_zone_table(fs_t *fs, uint32_t zone_num, 
-				size_t table_bytes, const char *error_context);
-int process_zone_range(fs_t *fs, uint32_t *zones, 
-			size_t zone_count, FILE *out, file_read_state_t *state);
+void *safe_calloc(size_t num_blocks, size_t size);
+uint32_t *safe_read_zone_table(fs_t *fs, uint32_t zone_num, size_t table_bytes, const char *error_context);
+int process_zone_range(fs_t *fs, uint32_t *zones, size_t num_zones, FILE *out, file_read_state_t *state);
 FILE *open_img(const char *path);
 fs_t fs_open(const char *path);
 int read_partition_table(fs_t *fs, off_t offset,
@@ -162,9 +159,6 @@ int inode_is_regular(inode_t *inode);
 
 void print_superblock(fs_t *fs, char *label, bool verbose);
 void print_inode(inode_t *inode, uint32_t inum, char *label, bool verbose);
-void print_part(partition_table_entry_t *p, int index,
-				 char *label, bool verbose);
+void print_part(partition_table_entry_t *p, int index, char *label, bool verbose);
 
-int process_data(fs_t *fs, uint32_t zone, size_t to_write, FILE *out,
-                 file_read_state_t *state);
 #endif
