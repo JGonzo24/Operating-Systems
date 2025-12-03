@@ -1,4 +1,4 @@
-#ifndef UTILS_H 
+#ifndef UTILS_H
 #define UTILS_H
 
 #include <stdbool.h>
@@ -6,14 +6,14 @@
 #include <stdio.h>
 #include <sys/types.h>
 
-
 #define DIRECT_ZONES 7
 #define INODE_SIZE 64
 #define DIR_ENTRY_SIZE 64
 /*
  * @brief The structs to be used for getting args
  */
-typedef struct {
+typedef struct
+{
   bool verbose;
   int part;
   int subpart;
@@ -21,7 +21,8 @@ typedef struct {
   char *path;
 } minls_input_t;
 
-typedef struct {
+typedef struct
+{
   bool verbose;
   int part;
   int subpart;
@@ -30,60 +31,67 @@ typedef struct {
   char *dstpath;
 } minget_input_t;
 
-typedef enum {
+typedef enum
+{
   MINLS_TYPE,
   MINGET_TYPE
 } struct_type;
 
-typedef struct {
+typedef struct
+{
   struct_type type;
-  union {
-    minls_input_t* minls_struct;
-    minget_input_t* minget_struct;
+  union
+  {
+    minls_input_t *minls_struct;
+    minget_input_t *minget_struct;
   } struct_var;
 } args_struct_t;
 
-typedef struct __attribute__((packed)) partition_table_entry_t {
-  uint8_t  bootind;      // 0x80 if bootable
-  uint8_t  start_head;
-  uint8_t  start_sec;
-  uint8_t  start_cyl;
-  uint8_t  type;         // 0x81 for Minix
-  uint8_t  end_head;
-  uint8_t  end_sec;
-  uint8_t  end_cyl;
-  uint32_t lFirst;       // first sector (LBA)
-  uint32_t size;         // size in sectors
-} partition_table_entry_t; 
+typedef struct __attribute__((packed)) partition_table_entry_t
+{
+  uint8_t bootind;
+  uint8_t start_head;
+  uint8_t start_sec;
+  uint8_t start_cyl;
+  uint8_t type;
+  uint8_t end_head;
+  uint8_t end_sec;
+  uint8_t end_cyl;
+  uint32_t lFirst;
+  uint32_t size;
+} partition_table_entry_t;
 
-typedef struct suberblock {
+typedef struct suberblock
+{
   /* Minix Version 3 Superblock
-  * this structure found in fs/super.h
-  * in minix 3.1.1
-  */
+   * this structure found in fs/super.h
+   * in minix 3.1.1
+   */
   /* on disk. These fields and orientation are non–negotiable */
-  uint32_t ninodes; /* number of inodes in this filesystem */
-  uint16_t pad1; /* make things line up properly */
-  int16_t i_blocks; /* # of blocks used by inode bit map */
-  int16_t z_blocks; /* # of blocks used by zone bit map */
-  uint16_t firstdata; /* number of first data zone */
+  uint32_t ninodes;      /* number of inodes in this filesystem */
+  uint16_t pad1;         /* make things line up properly */
+  int16_t i_blocks;      /* # of blocks used by inode bit map */
+  int16_t z_blocks;      /* # of blocks used by zone bit map */
+  uint16_t firstdata;    /* number of first data zone */
   int16_t log_zone_size; /* log2 of blocks per zone */
-  int16_t pad2; /* make things line up again */
-  uint32_t max_file; /* maximum file size */
-  uint32_t zones; /* number of zones on disk */
-  int16_t magic; /* magic number */
-  int16_t pad3; /* make things line up again */
-  uint16_t blocksize; /* block size in bytes */
-  uint8_t subversion; /* filesystem sub–version */
+  int16_t pad2;          /* make things line up again */
+  uint32_t max_file;     /* maximum file size */
+  uint32_t zones;        /* number of zones on disk */
+  int16_t magic;         /* magic number */
+  int16_t pad3;          /* make things line up again */
+  uint16_t blocksize;    /* block size in bytes */
+  uint8_t subversion;    /* filesystem sub–version */
 } superblock_t;
 
-typedef struct {
-  FILE* img;
+typedef struct
+{
+  FILE *img;
   off_t fs_start;
   superblock_t sb;
 } fs_t;
 
-typedef struct inode {
+typedef struct inode
+{
   uint16_t mode;
   uint16_t links;
   uint16_t uid;
@@ -98,12 +106,14 @@ typedef struct inode {
   uint32_t unused;
 } inode_t;
 
-typedef struct minix_dir_entry {
+typedef struct minix_dir_entry
+{
   uint32_t inode;
   unsigned char name[60];
 } minix_dir_entry;
 
-typedef struct {
+typedef struct
+{
   uint32_t remaining;
   size_t total_written;
 } file_read_state_t;
@@ -115,22 +125,31 @@ void dir_process_zone(fs_t *fs, uint32_t zone, unsigned char *raw,
 ssize_t fs_read_file(fs_t *fs, inode_t *inode, FILE *out);
 int fs_lookup_path(fs_t *fs, const char *path,
                    inode_t *out_inode, uint32_t *out_inum);
-int inode_is_directory(inode_t* inode);
+int inode_is_directory(inode_t *inode);
 void mode_to_string(uint16_t mode, char out[11]);
-int fs_read_directory(fs_t *fs, inode_t* dir_inode, 
-				minix_dir_entry* entries);
-off_t zone_to_offset(fs_t* fs, uint32_t zone);
-int fs_read_inode(fs_t *fs, uint32_t inum, inode_t* out);
-int read_superblock(fs_t* fs);
-args_struct_t* Getopts(int argc, char *argv[]);
-int allocate_struct(args_struct_t*, int argc, char *argv[]);
-void free_args(args_struct_t* args);
-FILE* open_img(const char *path);
-fs_t fs_open(const char* path);
-int read_partition_table(fs_t* fs, off_t offset, 
-			partition_table_entry_t parts[4]);
-int select_partition_table(int index, fs_t* fs,
-			 partition_table_entry_t parts[4]);
+int fs_read_directory(fs_t *fs, inode_t *dir_inode,
+                      minix_dir_entry *entries);
+off_t zone_to_offset(fs_t *fs, uint32_t zone);
+int fs_read_inode(fs_t *fs, uint32_t inum, inode_t *out);
+int read_superblock(fs_t *fs);
+args_struct_t *Getopts(int argc, char *argv[]);
+int allocate_struct(args_struct_t *, int argc, char *argv[]);
+void free_args(args_struct_t *args);
+void print_usage(char *prog_name, struct_type type);
+int process_common_options(char opt, char *optarg, char *prog_name,
+                           bool *verbose, int *part, int *subpart, struct_type type);
+int safe_fseeko(FILE *stream, off_t offset, int whence);
+int safe_fread(void *ptr, size_t size, size_t nitems, FILE *stream);
+void *safe_malloc(size_t size);
+void *safe_calloc(size_t nmemb, size_t size);
+uint32_t *safe_read_zone_table(fs_t *fs, uint32_t zone_num, size_t table_bytes, const char *error_context);
+int process_zone_range(fs_t *fs, uint32_t *zones, size_t zone_count, FILE *out, file_read_state_t *state);
+FILE *open_img(const char *path);
+fs_t fs_open(const char *path);
+int read_partition_table(fs_t *fs, off_t offset,
+                         partition_table_entry_t parts[4]);
+int select_partition_table(int index, fs_t *fs,
+                           partition_table_entry_t parts[4]);
 
 size_t fs_zone_bytes(fs_t *fs);
 
@@ -138,5 +157,8 @@ size_t fs_ptrs_per_block(fs_t *fs);
 
 int inode_is_regular(inode_t *inode);
 
+void print_superblock(fs_t *fs, char *label, bool verbose);
+void print_inode(inode_t *inode, uint32_t inum, char *label, bool verbose);
+void print_part(partition_table_entry_t *p, int index, char *label, bool verbose);
 
 #endif
