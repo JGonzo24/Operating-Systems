@@ -1,9 +1,0 @@
-
-
------------------
-21) subpart., w/filename:
-     minls -p 0 -s 2 /home/pn-cs453/Given/Asgn5/Images/HardDisk /home/pnico/Message 
------------------
-Test program output:
--rw-r--r-- 72 home/pnico/Message
-Diffs: ( < Reference > Testfile ):
