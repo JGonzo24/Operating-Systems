@@ -7,11 +7,11 @@
 #include "utils.h"
 
 /**
- * @brief Handle partition setup - primary and subpartition if needed
+ * @brief Handles subpartition and multi-partition setup
  *
  * This sets up the file system to point to the right partition if the user
- * specified one. It'll read the partition table, show the partitions if
- * we're in verbose mode, and then select the one they asked for.
+ * specified one. It'll read the partition table, print the partitions,
+ * if verbose flag is set, and then select the partition requested.
  *
  * @param fs Pointer to the filesystem struct to modify
  * @param mi Minget input struct containing partition info
@@ -102,10 +102,10 @@ int find_and_validate_file(fs_t *fs, minget_input_t *mi,
 }
 
 /**
- * @brief Open the output file - either stdout or the destination given
+ * @brief Open the output file which is either stdout or the destination given
  *
  * If no destination file specified, copy to stdout.
- * Otherwise, open file for writing in binary mode.
+ * Otherwise, open file for writing.
  *
  * @param mi Minget input struct containing destination path (or NULL)
  * @return File pointer on success, NULL on failure
@@ -154,7 +154,7 @@ int copy_file_data(fs_t *fs, inode_t *inode, FILE *out,
 /**
  * @brief Clean up resources and close files
  *
- * Makes sure we properly close any files we opened and free any memory
+ * Makes sure we properly close any files opened and free any memory
  * allocated. Called at the end of main or on error.
  *
  * @param fs Pointer to filesystem struct 
@@ -261,7 +261,7 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
-  /* All done - clean up and exit */
+  /* Done */
   cleanup_resources(&fs, args, out);
   return EXIT_SUCCESS;
 }

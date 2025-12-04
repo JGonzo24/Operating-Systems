@@ -8,7 +8,7 @@
  *
  * Sets up the filesystem to point to the right partition if the user
  * specified one. Reads partition tables, shows info if verbose, and
- * selects the requested partition. 
+ * selects the requested partition.
  *
  * @param fs Pointer to the filesystem struct to modify
  * @param minls_struct Minls input struct containing partition info
@@ -33,7 +33,7 @@ int setup_partitions(fs_t *fs, minls_input_t *minls_struct)
   /* Read the primary partition table */
   if (read_partition_table(fs, 0, parts) != 0)
   {
-    fprintf(stderr, "Error in read_primary_partition()!\n");
+    fprintf(stderr, "minls: failed to read primary partition table\n");
     return -1;
   }
 
@@ -46,7 +46,8 @@ int setup_partitions(fs_t *fs, minls_input_t *minls_struct)
   /* Select the partition */
   if (select_partition_table(minls_struct->part, fs, parts) != 0)
   {
-    fprintf(stderr, "Error in select_primary_partition()!\n");
+    fprintf(stderr, "minls: failed to select partition %d\n", 
+                                            minls_struct->part);
     return -1;
   }
 
@@ -56,12 +57,14 @@ int setup_partitions(fs_t *fs, minls_input_t *minls_struct)
     partition_table_entry_t subparts[4];
     if (read_partition_table(fs, fs->fs_start, subparts) != 0)
     {
-      fprintf(stderr, "Error in read_primary_partition()!\n");
+      fprintf(stderr, "minls: failed to read subpartition table\n");
       return -1;
     }
     if (select_partition_table(minls_struct->subpart, fs, subparts) != 0)
     {
-      fprintf(stderr, "Error in select_primary_partition()!\n");
+      fprintf(stderr, "minls: failed to select subpartition %d\n", 
+                                              minls_struct->subpart);
+
       return -1;
     }
   }
@@ -72,7 +75,7 @@ int setup_partitions(fs_t *fs, minls_input_t *minls_struct)
  * @brief Print the directory header with proper formatting
  *
  * Shows the directory name before listing its contents. If no path
- * given, then specify "/:". 
+ * given, then specify "/:".
  *
  * @param path The directory path to show in the header
  */
@@ -99,7 +102,7 @@ void print_directory_header(const char *path)
  * @brief List all entries in a directory
  *
  * Reads all the directory entries and prints them out with their
- * permissions, size, and name. 
+ * permissions, size, and name.
  *
  * @param fs Pointer to the filesystem struct
  * @param dir_inode Pointer to the directory's inode
@@ -122,7 +125,7 @@ int list_directory_contents(fs_t *fs, inode_t *dir_inode, const char *path)
   int count = fs_read_directory(fs, dir_inode, entries);
   if (count < 0)
   {
-    fprintf(stderr, "Error in fs_read_directory\n");
+    fprintf(stderr, "minls: failed to read directory contents\n");
     free(entries);
     return -1;
   }
@@ -146,7 +149,7 @@ int list_directory_contents(fs_t *fs, inode_t *dir_inode, const char *path)
 }
 
 /**
- * @brief Print info for a single file 
+ * @brief Print info for a single file
  *
  * Shows the file's permissions, size, and name. Used when the path
  * given points to a regular file instead of a directory.
@@ -197,7 +200,7 @@ void cleanup_resources(fs_t *fs, args_struct_t *args)
  * minls [ -v ] [ -p part [ -s subpart ] ] imagefile [ path ]
  *
  * Lists the contents of a directory in the minix filesystem, or shows
- * info about a single file if the path points to a file. 
+ * info about a single file if the path points to a file.
  *
  * @param argc Number of command line arguments
  * @param argv Array of command line argument strings
@@ -232,7 +235,7 @@ int main(int argc, char *argv[])
   /* Read the superblock into file system struct */
   if (read_superblock(&fs) != 0)
   {
-    fprintf(stderr, "Error in read_superblock() !\n");
+    fprintf(stderr, "minls: failed to read superblock\n");
     cleanup_resources(&fs, args);
     return EXIT_FAILURE;
   }
@@ -245,7 +248,7 @@ int main(int argc, char *argv[])
   uint32_t target_inum;
   if (fs_lookup_path(&fs, minls_struct->path, &target, &target_inum) != 0)
   {
-    fprintf(stderr, "Path not found: %s\n", minls_struct->path);
+    fprintf(stderr, "minls: path not found: %s\n", minls_struct->path);
     cleanup_resources(&fs, args);
     return EXIT_FAILURE;
   }

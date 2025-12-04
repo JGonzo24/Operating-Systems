@@ -9,9 +9,7 @@
 #define DIRECT_ZONES 7
 #define INODE_SIZE 64
 #define DIR_ENTRY_SIZE 64
-/*
- * @brief The structs to be used for getting args
- */
+
 typedef struct
 {
   bool verbose;

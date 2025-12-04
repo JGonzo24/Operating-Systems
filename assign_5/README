@@ -32,11 +32,5 @@ minget [ -v ] [ -p part [ -s subpart ] ] imagefile srcpath [ dstpath ]
 - `-p part` : Partition number (0-3)
 - `-s subpart` : Subpartition number (0-3)
 
-## Examples
 
-```bash
-./minls disk.img /home              # List directory
-./minget disk.img /bin/ls > ls      # Extract file
-./minls -v -p 1 disk.img            # Verbose, partition 1
-```
 

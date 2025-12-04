@@ -33,14 +33,14 @@
  * @param stream File stream to seek on
  * @param offset Offset to seek to
  * @param whence Position reference (SEEK_SET, SEEK_CUR, SEEK_END)
- * @return 0 on success, EXIT_FAILURE on error
+ * @return 0 on success, -1 on error
  */
 int safe_fseeko(FILE *stream, off_t offset, int whence)
 {
   if (fseeko(stream, offset, whence) != 0)
   {
     perror("fseeko");
-    return EXIT_FAILURE;
+    return -1;
   }
   return 0;
 }
@@ -51,14 +51,14 @@ int safe_fseeko(FILE *stream, off_t offset, int whence)
  * @param size Size of each element
  * @param bytes_to_read Number of bytes to read
  * @param stream File stream to read from
- * @return 0 on success, EXIT_FAILURE on error
+ * @return 0 on success, -1 on error
  */
 int safe_fread(void *ptr, size_t size, size_t bytes_to_read, FILE *stream)
 {
   if (fread(ptr, size, bytes_to_read, stream) != bytes_to_read)
   {
     perror("fread");
-    return EXIT_FAILURE;
+    return -1;
   }
   return 0;
 }
@@ -154,7 +154,8 @@ int process_zone_range(fs_t *fs, uint32_t *zones, size_t num_zones,
   {
     /* 0 for holes when zones is NULL */
     uint32_t zone = zones ? zones[i] : 0;
-    size_t to_write = (state->remaining < zone_bytes) ? state->remaining : zone_bytes;
+    size_t to_write = (state->remaining < zone_bytes) ? 
+                                    state->remaining : zone_bytes;
 
     if (process_data(fs, zone, to_write, out, state) < 0)
     {
@@ -166,7 +167,6 @@ int process_zone_range(fs_t *fs, uint32_t *zones, size_t num_zones,
 
 /**
  * @brief Deallocates the argument struct
- *
  * @param args Argument struct pointer to be freed
  */
 void free_args(args_struct_t *args)
@@ -283,7 +283,7 @@ void print_usage(char *prog_name, struct_type type)
  * @param part Pointer to partition number
  * @param subpart Pointer to subpartition number
  * @param type Program type for usage messages
- * @return 0 on success, EXIT_FAILURE on error
+ * @return 0 on success, -1 on error
  */
 int process_common_options(char opt, char *optarg, char *prog_name,
                            bool *verbose, int *part, int *subpart,
@@ -302,10 +302,10 @@ int process_common_options(char opt, char *optarg, char *prog_name,
     break;
   case 'h':
     print_usage(prog_name, type);
-    return EXIT_FAILURE;
+    return -1;
   default:
     print_usage(prog_name, type);
-    return EXIT_FAILURE;
+    return -1;
   }
   return 0;
 }
@@ -336,17 +336,17 @@ int allocate_struct(args_struct_t *args, int argc, char *argv[])
       if (process_common_options(opt, optarg, argv[0], &m->verbose,
                                  &m->part, &m->subpart, MINGET_TYPE) != 0)
       {
-        return EXIT_FAILURE;
+        return -1;
       }
     }
     /* Ensure after the optional flags you have the necessary arguments */
     if (argc - optind < 2)
     {
       print_usage(argv[0], MINGET_TYPE);
-      return EXIT_FAILURE;
+      return -1;
     }
 
-    /* If you do, then save those into the struct */
+    /* If given the correct arguments, then save those into the struct */
     m->imgfile = argv[optind++];
     m->srcpath = argv[optind++];
     if (optind < argc)
@@ -356,7 +356,7 @@ int allocate_struct(args_struct_t *args, int argc, char *argv[])
     break;
   }
 
-  /* Repeat for MINLS */
+  /* Similar for MINLS */
   case (MINLS_TYPE):
   {
     minls_input_t *l = args->struct_var.minls_struct;
@@ -366,15 +366,15 @@ int allocate_struct(args_struct_t *args, int argc, char *argv[])
       if (process_common_options(opt, optarg, argv[0], &l->verbose,
                                  &l->part, &l->subpart, MINLS_TYPE) != 0)
       {
-        return EXIT_FAILURE;
+        return -1;
       }
     }
 
-    /* Ensure you have necessary number of args after teh optional flags */
+    /* Ensure you have necessary number of args after the optional flags */
     if (argc - optind < 1)
     {
       print_usage(argv[0], MINLS_TYPE);
-      return EXIT_FAILURE;
+      return -1;
     }
 
     /* Get the final argument and save into the struct */
@@ -394,7 +394,7 @@ int allocate_struct(args_struct_t *args, int argc, char *argv[])
 
   default:
     fprintf(stderr, "Unknown struct type in allocate_struct\n");
-    return EXIT_FAILURE;
+    return -1;
   }
   return 0;
 }
@@ -455,19 +455,19 @@ int read_partition_table(fs_t *fs, off_t offset,
   /* Seek to the correct offset based on the partition */
   if (safe_fseeko(fs->img, offset, SEEK_SET) != 0)
   {
-    return EXIT_FAILURE;
+    return -1;
   }
 
   /* Read a sector from the image */
   if (safe_fread(sector, 1, sizeof(sector), fs->img) != 0)
   {
-    return EXIT_FAILURE;
+    return -1;
   }
   /* Check MBR signature (bytes 510-511 = 0x55AA) */
   if (sector[510] != 0x55 || sector[511] != 0xAA)
   {
     fprintf(stderr, "Invalid partition table signature!");
-    return EXIT_FAILURE;
+    return -1;
   }
   /* Copy the partition entries into the partition structs */
   memcpy(parts, sector + 0x1BE, 4 * sizeof(partition_table_entry_t));
@@ -495,16 +495,16 @@ int select_partition_table(int index, fs_t *fs,
   if (index > 3)
   {
     fprintf(stderr, "Partition index (%d) not in range [0-3]!\n", index);
-    return EXIT_FAILURE;
+    return -1;
   }
 
   partition_table_entry_t *entry = &parts[index];
 
-  /* Checks the Parition type ensuring it is a MINIX partition */
+  /* Checks the parition type ensuring it is a MINIX partition */
   if (entry->type != 0x81)
   {
     fprintf(stderr, "Partition %d is not a Minix Partition!\n", index);
-    return EXIT_FAILURE;
+    return -1;
   }
   /* Multiply by 512 to get from sectors to bytes and calculate offset */
   fs->fs_start = (off_t)entry->lFirst * 512;
@@ -514,7 +514,7 @@ int select_partition_table(int index, fs_t *fs,
 /**
  * @brief Reads the super block to ensure correct File System
  * @param fs Filesystem struct pointer
- * @return EXIT_FAILURE on error, EXIT_SUCCESS on success
+ * @return -1 on error, 0 on success
  */
 int read_superblock(fs_t *fs)
 {
@@ -523,13 +523,13 @@ int read_superblock(fs_t *fs)
   /* fseek to superblock */
   if (safe_fseeko(fs->img, sb_offset, SEEK_SET) != 0)
   {
-    return EXIT_FAILURE;
+    return -1;
   }
 
   /* Read from the image into the superblock */
   if (safe_fread(&fs->sb, sizeof(fs->sb), 1, fs->img) != 0)
   {
-    return EXIT_FAILURE;
+    return -1;
   }
 
   /* Ensure correct Magic number */
@@ -539,15 +539,19 @@ int read_superblock(fs_t *fs)
             "Bad magic number.(0x%04x)\n"
             " This doesn't look like MINIX FS.\n",
             (unsigned)fs->sb.magic);
-    return EXIT_FAILURE;
+    return -1;
   }
-  return EXIT_SUCCESS;
+  return 0;
 }
 
 /**
  * @brief Calculates inode offset, populates inode struct
  *
+ * @param fs File system struct pointer
+ * @param inum Used to calculate the inode offset
+ * @param out The ouput inode struct pointer to read into
  *
+ * @return 0 on success, -1 on error
  */
 int fs_read_inode(fs_t *fs, uint32_t inum, inode_t *out)
 {
@@ -560,7 +564,6 @@ int fs_read_inode(fs_t *fs, uint32_t inum, inode_t *out)
     return -1;
   }
   /* Get the starting block offset of the inode table */
-  /* Layout: [boot][super][inode_bitmap][zone_bitmap][inode_table] */
   off_t inode_table_block = 2 + fs->sb.i_blocks + fs->sb.z_blocks;
 
   /* Compute byte offset of the requested inode */
@@ -570,11 +573,11 @@ int fs_read_inode(fs_t *fs, uint32_t inum, inode_t *out)
 
   if (safe_fseeko(fs->img, inode_offset, SEEK_SET) != 0)
   {
-    return EXIT_FAILURE;
+    return -1;
   }
   if (safe_fread(out, INODE_SIZE, 1, fs->img) != 0)
   {
-    return EXIT_FAILURE;
+    return -1;
   }
   return 0;
 }
@@ -702,7 +705,7 @@ int fs_read_directory(fs_t *fs, inode_t *dir_inode,
     return -1;
   }
 
-  /* ===== Parse raw bytes into directory entries ===== */
+  /* ----- Parse raw bytes into directory entries ----- */
   int n_entries = dir_inode->size / DIR_ENTRY_SIZE; /* Max possible entries */
   int out_count = 0;
 
@@ -767,7 +770,7 @@ void mode_to_string(uint16_t mode, char out[11])
 int fs_lookup_path(fs_t *fs, const char *path, inode_t *out_inode,
                    uint32_t *out_inum)
 {
-  /* Special case: root or empty path -> inode 1 */
+  /* Root or empty path -> inum == 1 */
   if (!path || path[0] == '\0' || (strcmp(path, "/") == 0))
   {
     if (fs_read_inode(fs, 1, out_inode) != 0)
@@ -790,7 +793,7 @@ int fs_lookup_path(fs_t *fs, const char *path, inode_t *out_inode,
     return -1;
   }
 
-  /* Gets the current inode */
+  /* Gets the current inode starting at the root directory */
   inode_t curr;
   if (fs_read_inode(fs, 1, &curr) != 0)
   {
